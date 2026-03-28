@@ -23,9 +23,8 @@ Sur GitHub : cliquez **uploading an existing file** → glissez tous les fichier
 - **Settings** → **Pages** → Source : *Deploy from a branch* → branche `main`, dossier `/` → **Save**
 
 Votre app est disponible sur :
-```
 [Recett.ia](https://florencelc.github.io/Recettia/)
-```
+
 
 ---
 
