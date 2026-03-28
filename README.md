@@ -14,19 +14,17 @@ Application web pour extraire et gérer vos recettes avec l'IA **Mistral**.
 recettai/
 ├── index.html
 ├── README.md
-├── css/
-│   └── style.css
-└── js/
-    └── app.js
+├── style.css
+└── pp.js
 ```
 Sur GitHub : cliquez **uploading an existing file** → glissez tous les fichiers → **Commit changes**
 
 ### 3. Activez GitHub Pages
 - **Settings** → **Pages** → Source : *Deploy from a branch* → branche `main`, dossier `/` → **Save**
 
-Votre app sera disponible sur :
+Votre app est disponible sur :
 ```
-https://VOTRE-USERNAME.github.io/recettai/
+[Recett.ia](https://florencelc.github.io/Recettia/)
 ```
 
 ---
