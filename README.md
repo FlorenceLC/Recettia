@@ -15,7 +15,7 @@ recettai/
 ├── index.html
 ├── README.md
 ├── style.css
-└── pp.js
+└── app.js
 ```
 Sur GitHub : cliquez **uploading an existing file** → glissez tous les fichiers → **Commit changes**
 
