@@ -11,8 +11,8 @@
 //  🔧 CONFIGURATION SUPABASE
 //  Remplacez ces deux valeurs par les vôtres (voir GUIDE.md)
 // ──────────────────────────────────────────────────────────────
-const SUPABASE_URL    = 'VOTRE_SUPABASE_URL';      // ex: https://xxxx.supabase.co
-const SUPABASE_ANON   = 'VOTRE_SUPABASE_ANON_KEY'; // clé publique anon
+const SUPABASE_URL    = 'https://sgiftpxtfqcwfxsczjfg.supabase.co';      // ex: https://xxxx.supabase.co
+const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnaWZ0cHh0ZnFjd2Z4c2N6amZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNTk0MTksImV4cCI6MjA5MDczNTQxOX0.THfYqRnhLBDe9YOJ5EUugGk-ihl7LHxJDEmjXO8Puz8'; // clé publique anon
 
 // ─── CONSTANTS ───────────────────────────────────────────────
 const DAYS  = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
