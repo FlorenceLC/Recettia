@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -40,6 +40,9 @@
   <div class="loading-text">Analyse en cours…</div>
   <div class="loading-step" id="loading-step"></div>
 </div>
+
+<!-- ══════════ SYNC BANNER ══════════ -->
+<div id="sync-banner" style="display:none;position:fixed;top:64px;left:0;right:0;z-index:90;padding:10px 2rem;font-size:.85rem;font-family:'DM Sans',sans-serif;text-align:center;transition:opacity .5s"></div>
 
 <!-- ══════════ TOASTS ══════════ -->
 <div class="toast-container" id="toasts"></div>
@@ -92,9 +95,7 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
     </div>
   </div>
 
-  <button class="analyze-btn" id="analyze-btn" onclick="analyzeRecipe()">
-    ✨ Analyser la recette
-  </button>
+  <button class="analyze-btn" id="analyze-btn" onclick="analyzeRecipe()">✨ Analyser la recette</button>
 
   <!-- RESULT -->
   <div class="recipe-result" id="recipe-result">
@@ -103,25 +104,26 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
         <span class="recipe-category-badge cat-entree" id="result-cat-badge">Entrée</span>
         <input class="recipe-title-input" id="result-title" placeholder="Titre de la recette">
       </div>
-
       <div class="recipe-meta">
         <div class="meta-item">
           👥 Personnes :
           <input class="serving-input" type="number" id="result-servings" value="4" min="1" onchange="recalcServings()">
         </div>
-        <div class="meta-item" id="result-source-wrap" style="display:none">
-          🔗 <a href="#" target="_blank" rel="noopener" id="result-source" class="source-link">Recette originale</a>
+      </div>
+
+      <!-- CHAMP SOURCE -->
+      <div style="padding:0.75rem 2rem;background:var(--cream);border-bottom:1px solid var(--stone)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:.85rem;color:var(--muted);white-space:nowrap">🔗 Source :</span>
+          <input type="url" id="result-source-input"
+            placeholder="Lien de la vidéo ou du site (Instagram, TikTok, Marmiton…)"
+            style="flex:1;border:1.5px solid var(--stone);border-radius:var(--radius-sm);padding:7px 12px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--ink);background:white;outline:none;transition:border-color .2s"
+            onfocus="this.style.borderColor='var(--terracotta)'"
+            onblur="this.style.borderColor='var(--stone)'">
         </div>
       </div>
 
-      <div class="recipe-body">
-        <div class="recipe-photo-col">
-          <div class="photo-upload-zone" id="result-photo-zone" onclick="triggerPhoto('result-photo-input')">
-            <span class="photo-icon">📷</span>
-            <span class="photo-hint">Cliquez pour ajouter une photo</span>
-            <input type="file" accept="image/*" id="result-photo-input" onchange="handlePhoto(this,'result-photo-zone')">
-          </div>
-        </div>
+      <div class="recipe-body" style="grid-template-columns:1fr">
         <div class="recipe-content-right">
           <div class="recipe-ingredients-col">
             <div class="section-title">
@@ -139,7 +141,6 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
           </div>
         </div>
       </div>
-
       <div class="recipe-actions">
         <button class="btn-primary" onclick="saveRecipe()">💾 Enregistrer</button>
         <button class="btn-secondary" onclick="exportCurrentPDF()">📄 PDF</button>
@@ -214,22 +215,40 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
 
   <div class="settings-card">
 
+    <!-- GITHUB GIST -->
     <div class="settings-section">
-      <h3>☁️ Base de données Supabase</h3>
+      <h3>☁️ Synchronisation GitHub Gist</h3>
       <p class="settings-desc">
-        Supabase synchronise vos recettes sur tous vos appareils.<br>
-        <strong>Suivez le fichier <code>GUIDE_SUPABASE.md</code> inclus dans le zip pour configurer Supabase en 10 minutes.</strong><br>
-        Une fois configuré, remplacez <code>VOTRE_SUPABASE_URL</code> et <code>VOTRE_SUPABASE_ANON_KEY</code> dans <code>js/app.js</code>.
+        Vos recettes sont stockées dans un fichier JSON sur votre GitHub Gist —
+        accessibles sur tous vos appareils, gratuitement, sans limite.<br><br>
+        <strong>Configuration (3 minutes) :</strong><br>
+        1. Allez sur <a href="https://gist.github.com" target="_blank" rel="noopener">gist.github.com</a>
+           → créez un nouveau Gist nommé <code>recettai.json</code> avec le contenu <code>[]</code>
+           → notez l'<strong>ID du Gist</strong> (les chiffres/lettres dans l'URL)<br>
+        2. Allez sur <a href="https://github.com/settings/tokens/new" target="_blank" rel="noopener">github.com/settings/tokens/new</a>
+           → cochez uniquement <strong>gist</strong> → générez le token → copiez-le<br>
+        3. Collez vos deux valeurs ci-dessous et cliquez Enregistrer.
       </p>
-      <div id="supabase-status" class="api-key-status"></div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px">
+        <div class="api-key-row">
+          <input type="text" id="gist-id-input" placeholder="ID du Gist (ex: a1b2c3d4e5f6…)" autocomplete="off" spellcheck="false" style="flex:1;border:1.5px solid var(--stone);border-radius:var(--radius-sm);padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.9rem;background:var(--cream);outline:none">
+        </div>
+        <div class="api-key-row">
+          <input type="password" id="gist-token-input" placeholder="Token GitHub (ghp_…)" autocomplete="off" spellcheck="false">
+          <button class="btn-secondary" onclick="toggleGistVis()">👁️</button>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="saveGistConfig()" style="margin-bottom:8px">Enregistrer la configuration</button>
+      <div id="gist-status" class="api-key-status"></div>
     </div>
 
     <hr class="settings-divider">
 
+    <!-- MISTRAL -->
     <div class="settings-section">
       <h3>🔑 Clé API Mistral</h3>
       <p class="settings-desc">
-        Entrez votre clé API Mistral AI pour activer l'analyse de recettes.<br>
+        Clé API pour l'analyse automatique de recettes.<br>
         Obtenez-en une sur <a href="https://console.mistral.ai" target="_blank" rel="noopener">console.mistral.ai</a>.
       </p>
       <div class="api-key-row">
@@ -242,9 +261,10 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
 
     <hr class="settings-divider">
 
+    <!-- DONNÉES -->
     <div class="settings-section">
       <h3>🗂️ Données</h3>
-      <p class="settings-desc">Exportez ou supprimez toutes vos recettes.</p>
+      <p class="settings-desc">Sauvegarde manuelle ou suppression de toutes vos recettes.</p>
       <div class="settings-actions">
         <button class="btn-secondary" onclick="exportJSON()">📦 Exporter (JSON)</button>
         <button class="btn-secondary" onclick="document.getElementById('import-file').click()">📥 Importer (JSON)</button>
@@ -252,6 +272,7 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
         <button class="btn-danger" onclick="clearAll()">🗑️ Tout supprimer</button>
       </div>
     </div>
+
   </div>
 </div>
 
@@ -282,6 +303,6 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
   </div>
 </div>
 
-<script src="app.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
