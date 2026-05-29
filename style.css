@@ -1071,3 +1071,107 @@ nav { display: flex; gap: 4px; }
   .page { display: block !important; padding: 0; }
   body { background: white; }
 }
+
+/* ─── SEARCH ──────────────────────────────── */
+.search-bar-wrap {
+  margin-bottom: 1rem;
+}
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 1.5px solid var(--stone);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  box-shadow: var(--shadow);
+  transition: border-color .2s, box-shadow .2s;
+}
+.search-bar:focus-within {
+  border-color: var(--terracotta);
+  box-shadow: 0 0 0 3px rgba(196,84,26,.1);
+}
+.search-icon { font-size: 1rem; flex-shrink: 0; opacity: .6; }
+.search-bar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .95rem;
+  color: var(--ink);
+  background: transparent;
+}
+.search-bar input::placeholder { color: var(--stone-dark); }
+#search-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: .9rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color .2s;
+}
+#search-clear:hover { color: var(--terracotta); }
+
+/* ─── FILTER SECTION ──────────────────────── */
+.filter-section {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: .75rem;
+  flex-wrap: wrap;
+}
+.filter-group-label {
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ─── TAGS ────────────────────────────────── */
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--cream);
+  border: 1px solid var(--stone);
+  border-radius: 99px;
+  padding: 3px 10px;
+  font-size: .75rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: default;
+  transition: all .15s;
+}
+.tag-chip .tag-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--stone-dark);
+  font-size: .65rem;
+  padding: 0 0 0 2px;
+  line-height: 1;
+  transition: color .15s;
+}
+.tag-chip .tag-remove:hover { color: var(--terracotta); }
+.tag-chip.tag-season-printemps  { background: #F0FFF4; border-color: #68D391; color: #276749; }
+.tag-chip.tag-season-été        { background: #FFFBEB; border-color: #F6D860; color: #744210; }
+.tag-chip.tag-season-automne    { background: #FFF5EB; border-color: #ED8936; color: #7B341E; }
+.tag-chip.tag-season-hiver      { background: #EBF8FF; border-color: #63B3ED; color: #2A4365; }
+.tag-chip.tag-cuisine-asiatique { background: #FFF5F5; border-color: #FC8181; color: #742A2A; }
+.tag-chip.tag-cuisine-méditerranéenne { background: #FAF5FF; border-color: #B794F4; color: #44337A; }
+.tag-chip.tag-cuisine-française  { background: #EBF8FF; border-color: #63B3ED; color: #2A4365; }
+.tag-chip.tag-quick             { background: #F0FFF4; border-color: #68D391; color: #276749; }
+.tag-chip.tag-comfort           { background: #FFFBEB; border-color: #F6D860; color: #744210; }
+
+.filter-btn.tag-active {
+  background: var(--terracotta);
+  border-color: var(--terracotta);
+  color: white;
+}
+
+/* search highlight */
+.recipe-thumb.hidden { display: none; }

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -111,15 +111,39 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
         </div>
       </div>
 
-      <!-- CHAMP SOURCE -->
-      <div style="padding:0.75rem 2rem;background:var(--cream);border-bottom:1px solid var(--stone)">
-        <div style="display:flex;align-items:center;gap:10px">
+      <!-- CHAMPS SOURCE + IMAGE -->
+      <div style="background:var(--cream);border-bottom:1px solid var(--stone)">
+        <div style="display:flex;align-items:center;gap:10px;padding:.65rem 2rem;border-bottom:1px solid var(--stone)">
           <span style="font-size:.85rem;color:var(--muted);white-space:nowrap">🔗 Source :</span>
           <input type="url" id="result-source-input"
-            placeholder="Lien de la vidéo ou du site (Instagram, TikTok, Marmiton…)"
+            placeholder="Lien de la vidéo ou du site (TikTok, Instagram, Marmiton…)"
             style="flex:1;border:1.5px solid var(--stone);border-radius:var(--radius-sm);padding:7px 12px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--ink);background:white;outline:none;transition:border-color .2s"
             onfocus="this.style.borderColor='var(--terracotta)'"
             onblur="this.style.borderColor='var(--stone)'">
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:.65rem 2rem">
+          <span style="font-size:.85rem;color:var(--muted);white-space:nowrap">🖼️ Image :</span>
+          <input type="url" id="result-image-input"
+            placeholder="Lien de la photo du plat (URL depuis TikTok, Google Images…)"
+            oninput="previewImage(this.value)"
+            style="flex:1;border:1.5px solid var(--stone);border-radius:var(--radius-sm);padding:7px 12px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--ink);background:white;outline:none;transition:border-color .2s"
+            onfocus="this.style.borderColor='var(--terracotta)'"
+            onblur="this.style.borderColor='var(--stone)'">
+          <div id="image-preview-wrap" style="display:none;flex-shrink:0">
+            <img id="image-preview" src="" alt="preview"
+              style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:2px solid var(--stone)">
+          </div>
+        </div>
+      </div>
+
+      <!-- TAGS -->
+      <div style="padding:.65rem 2rem;background:var(--cream);border-bottom:1px solid var(--stone)">
+        <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+          <span style="font-size:.85rem;color:var(--muted);white-space:nowrap;padding-top:4px">🏷️ Tags :</span>
+          <div id="result-tags-container" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;align-items:center">
+            <!-- tags rendered here -->
+          </div>
+          <button onclick="addTagManual()" style="background:none;border:1.5px dashed var(--stone);border-radius:99px;padding:3px 10px;font-size:.75rem;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all .2s" onmouseover="this.style.borderColor='var(--terracotta)';this.style.color='var(--terracotta)'" onmouseout="this.style.borderColor='var(--stone)';this.style.color='var(--muted)'">+ Tag</button>
         </div>
       </div>
 
@@ -154,16 +178,38 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
 ══════════════════════════════ -->
 <div class="page" id="page-recipes">
   <div class="recipes-header">
-    <h2>Mes Recettes</h2>
-    <div class="filter-bar">
-      <button class="filter-btn active" onclick="filterRecipes('all',this)">Toutes</button>
-      <button class="filter-btn" onclick="filterRecipes('Viande',this)">🥩 Viande</button>
-      <button class="filter-btn" onclick="filterRecipes('Poisson',this)">🐟 Poisson</button>
-      <button class="filter-btn" onclick="filterRecipes('Dessert',this)">🍰 Dessert</button>
-      <button class="filter-btn" onclick="filterRecipes('Cocktail',this)">🍹 Cocktail</button>
-      <button class="filter-btn" onclick="filterRecipes('Entrée',this)">🥗 Entrée</button>
+    <h2>Mes Recettes <span id="recipes-count-label" style="font-size:1rem;font-weight:400;color:var(--muted)"></span></h2>
+  </div>
+
+  <!-- SEARCH BAR -->
+  <div class="search-bar-wrap">
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input" placeholder="Rechercher par titre, ingrédient, tag…"
+        oninput="applyFilters()" autocomplete="off">
+      <button id="search-clear" onclick="clearSearch()" style="display:none">✕</button>
     </div>
   </div>
+
+  <!-- CATEGORY FILTERS -->
+  <div class="filter-section">
+    <div class="filter-group-label">Catégorie</div>
+    <div class="filter-bar" id="cat-filters">
+      <button class="filter-btn active" onclick="setCatFilter('all',this)">Toutes</button>
+      <button class="filter-btn" onclick="setCatFilter('Viande',this)">🥩 Viande</button>
+      <button class="filter-btn" onclick="setCatFilter('Poisson',this)">🐟 Poisson</button>
+      <button class="filter-btn" onclick="setCatFilter('Dessert',this)">🍰 Dessert</button>
+      <button class="filter-btn" onclick="setCatFilter('Cocktail',this)">🍹 Cocktail</button>
+      <button class="filter-btn" onclick="setCatFilter('Entrée',this)">🥗 Entrée</button>
+    </div>
+  </div>
+
+  <!-- TAG FILTERS (populated dynamically) -->
+  <div class="filter-section" id="tag-filter-section" style="display:none">
+    <div class="filter-group-label">Tags</div>
+    <div class="filter-bar" id="tag-filters"></div>
+  </div>
+
   <div class="recipes-grid" id="recipes-grid"></div>
 </div>
 
@@ -303,6 +349,6 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
   </div>
 </div>
 
-<script src="app.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

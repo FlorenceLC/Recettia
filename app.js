@@ -46,6 +46,8 @@ let plannerData      = {};
 let shoppingSelected = new Set();
 let currentTab       = 'video';
 let currentFilter    = 'all';
+let currentTagFilter = '';
+let searchQuery      = '';
 let baseServings     = 4;
 let baseIngredients  = [];
 let plannerTarget    = null;
@@ -305,7 +307,27 @@ function buildPrompt(type, input) {
           : type === 'web'    ? "Lien page web de recette : " + input + "\nGénère la recette correspondante."
           :                     "Texte de recette :\n\n" + input;
   const src = type !== 'text' ? '"' + input + '"' : 'null';
-  return ctx + '\n\nRetourne UNIQUEMENT ce JSON (sans markdown ni backticks) :\n{"title":"Titre","category":"Viande","servings":4,"source":' + src + ',"ingredients":[{"qty":"200g","name":"pâtes"}],"steps":["Étape 1."]}\n\nRègles : category = Viande|Poisson|Dessert|Cocktail|Entrée uniquement. Ne jamais inventer.';
+  return ctx + `
+
+Retourne UNIQUEMENT ce JSON (sans markdown ni backticks) :
+{
+  "title": "Titre",
+  "category": "Viande",
+  "servings": 4,
+  "source": ${src},
+  "ingredients": [{"qty":"200g","name":"pâtes"}],
+  "steps": ["Étape 1."],
+  "tags": ["asiatique","rapide","hiver"]
+}
+
+Règles :
+- category = Viande|Poisson|Dessert|Cocktail|Entrée uniquement
+- tags : tableau de 2 à 5 tags pertinents parmi ces catégories :
+  * Cuisine : français, italien, asiatique, méditerranéen, américain, mexicain, indien, japonais, thaï, libanais
+  * Saison : printemps, été, automne, hiver
+  * Occasion : rapide, festif, comfort food, barbecue, apéro, brunch, batch cooking
+  * Régime : végétarien, sans gluten, léger
+  Ne jamais inventer d'informations absentes du contenu fourni.`;
 }
 
 function parseJSON(text) {
@@ -365,12 +387,34 @@ function renderResultCard(recipe) {
   // Champ source
   const srcInput = document.getElementById('result-source-input');
   if (srcInput) srcInput.value = recipe.source || '';
+  // Champ image
+  const imgInput = document.getElementById('result-image-input');
+  if (imgInput) {
+    imgInput.value = recipe.photo || '';
+    previewImage(recipe.photo || '');
+  }
+  // Tags
+  renderTagsEditor(recipe.tags || []);
   renderIngredients('result-ingredients', recipe.ingredients || []);
   renderSteps('result-steps', recipe.steps || []);
 }
 
 function catClass(cat) {
   return ({ Viande:'cat-viande', Poisson:'cat-poisson', Dessert:'cat-dessert', Cocktail:'cat-cocktail', 'Entrée':'cat-entree' })[cat] || 'cat-entree';
+}
+
+// Aperçu de l'image en temps réel
+function previewImage(url) {
+  const wrap = document.getElementById('image-preview-wrap');
+  const img  = document.getElementById('image-preview');
+  if (!wrap || !img) return;
+  if (url && url.startsWith('http')) {
+    img.src = url;
+    img.onerror = () => { wrap.style.display = 'none'; };
+    img.onload  = () => { wrap.style.display = 'block'; };
+  } else {
+    wrap.style.display = 'none';
+  }
 }
 
 // Photos supprimées — source URL à la place
@@ -439,6 +483,131 @@ function scaleQty(qty, ratio) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  TAGS
+// ═══════════════════════════════════════════════════════════════
+function renderTagsEditor(tags) {
+  const container = document.getElementById('result-tags-container');
+  if (!container) return;
+  container.innerHTML = '';
+  (tags || []).forEach(tag => container.appendChild(createTagChip(tag, true)));
+}
+
+function createTagChip(tag, editable) {
+  const chip = document.createElement('span');
+  const slug = tag.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-');
+  chip.className = 'tag-chip tag-' + slug;
+  chip.dataset.tag = tag;
+  chip.innerHTML = esc(tag) + (editable
+    ? '<button class="tag-remove" onclick="removeTag(this)" title="Supprimer">✕</button>'
+    : '');
+  return chip;
+}
+
+function removeTag(btn) {
+  btn.closest('.tag-chip').remove();
+}
+
+function addTagManual() {
+  const tag = prompt('Nom du tag :');
+  if (!tag || !tag.trim()) return;
+  const container = document.getElementById('result-tags-container');
+  if (!container) return;
+  // Check not duplicate
+  const existing = Array.from(container.querySelectorAll('.tag-chip')).map(c => c.dataset.tag.toLowerCase());
+  if (existing.includes(tag.trim().toLowerCase())) { alert('Ce tag existe déjà.'); return; }
+  container.appendChild(createTagChip(tag.trim(), true));
+}
+
+function collectTags() {
+  const container = document.getElementById('result-tags-container');
+  if (!container) return [];
+  return Array.from(container.querySelectorAll('.tag-chip')).map(c => c.dataset.tag);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SEARCH & FILTERS
+// ═══════════════════════════════════════════════════════════════
+function applyFilters() {
+  searchQuery = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+  const clearBtn = document.getElementById('search-clear');
+  if (clearBtn) clearBtn.style.display = searchQuery ? 'block' : 'none';
+  renderRecipes();
+}
+
+function clearSearch() {
+  const inp = document.getElementById('search-input');
+  if (inp) inp.value = '';
+  searchQuery = '';
+  const clearBtn = document.getElementById('search-clear');
+  if (clearBtn) clearBtn.style.display = 'none';
+  renderRecipes();
+}
+
+function setCatFilter(cat, btn) {
+  currentFilter = cat;
+  document.querySelectorAll('#cat-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRecipes();
+}
+
+function setTagFilter(tag, btn) {
+  if (currentTagFilter === tag) {
+    // Toggle off
+    currentTagFilter = '';
+    document.querySelectorAll('#tag-filters .filter-btn').forEach(b => b.classList.remove('tag-active'));
+  } else {
+    currentTagFilter = tag;
+    document.querySelectorAll('#tag-filters .filter-btn').forEach(b => b.classList.remove('tag-active'));
+    btn.classList.add('tag-active');
+  }
+  renderRecipes();
+}
+
+function renderTagFilterBar() {
+  // Collect all unique tags from all recipes
+  const tagCounts = {};
+  recipes.forEach(r => (r.tags || []).forEach(t => {
+    tagCounts[t] = (tagCounts[t] || 0) + 1;
+  }));
+  const tags = Object.entries(tagCounts).sort((a,b) => b[1]-a[1]).map(e => e[0]);
+
+  const section = document.getElementById('tag-filter-section');
+  const bar     = document.getElementById('tag-filters');
+  if (!section || !bar) return;
+
+  if (!tags.length) { section.style.display = 'none'; return; }
+  section.style.display = 'flex';
+
+  bar.innerHTML = tags.map(tag => {
+    const slug    = tag.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-');
+    const active  = currentTagFilter === tag ? ' tag-active' : '';
+    return '<button class="filter-btn' + active + '" onclick="setTagFilter('' + esc(tag) + '',this)">' + esc(tag) + ' <span style="opacity:.6;font-size:.7rem">(' + tagCounts[tag] + ')</span></button>';
+  }).join('');
+}
+
+function getFilteredRecipes() {
+  return recipes.filter(r => {
+    // Category filter
+    if (currentFilter !== 'all' && r.category !== currentFilter) return false;
+    // Tag filter
+    if (currentTagFilter && !(r.tags || []).includes(currentTagFilter)) return false;
+    // Search
+    if (searchQuery) {
+      const haystack = [
+        r.title,
+        r.category,
+        ...(r.tags || []),
+        ...(r.ingredients || []).map(i => i.name),
+      ].join(' ').toLowerCase();
+      // Support multi-word search
+      const words = searchQuery.split(/\s+/);
+      if (!words.every(w => haystack.includes(w))) return false;
+    }
+    return true;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  COLLECT RECIPE
 // ═══════════════════════════════════════════════════════════════
 function collectRecipe() {
@@ -447,7 +616,8 @@ function collectRecipe() {
   const srcInput = document.getElementById('result-source-input');
   const source   = srcInput ? srcInput.value.trim() : '';
   const category = document.getElementById('result-cat-badge').textContent.trim();
-  const photo    = '';  // photos supprimées
+  const imgInput = document.getElementById('result-image-input');
+  const photo    = imgInput ? imgInput.value.trim() : '';
   const ingredients = [];
   document.querySelectorAll('#result-ingredients .ingredient-item').forEach(li => {
     const ins = li.querySelectorAll('input');
@@ -460,9 +630,10 @@ function collectRecipe() {
     const t = li.querySelector('textarea');
     if (t && t.value.trim()) steps.push(t.value.trim());
   });
+  const tags = collectTags();
   return {
     id: editingId || Date.now(), title, category, servings, source, photo,
-    ingredients, steps,
+    ingredients, steps, tags,
     base_servings: servings,
     base_ingredients: JSON.parse(JSON.stringify(ingredients)),
     created_at: new Date().toISOString(),
@@ -509,17 +680,33 @@ async function saveRecipe() {
 // ═══════════════════════════════════════════════════════════════
 function renderRecipes() {
   const grid = document.getElementById('recipes-grid');
-  const list = currentFilter === 'all' ? recipes : recipes.filter(r => r.category === currentFilter);
+  renderTagFilterBar();
+
+  const list = getFilteredRecipes();
+  const total = recipes.length;
+  const label = document.getElementById('recipes-count-label');
+  if (label) label.textContent = list.length < total
+    ? '(' + list.length + ' / ' + total + ')'
+    : '(' + total + ')';
+
   if (!list.length) {
-    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🍳</div><h3>Aucune recette ici</h3><p>Analysez votre première recette pour commencer !</p></div>';
+    grid.innerHTML = (recipes.length
+      ? '<div class="empty-state"><div class="empty-icon">🔍</div><h3>Aucun résultat</h3><p>Essayez d'autres mots-clés ou tags.</p></div>'
+      : '<div class="empty-state"><div class="empty-icon">🍳</div><h3>Aucune recette ici</h3><p>Analysez votre première recette pour commencer !</p></div>');
     return;
   }
   grid.innerHTML = list.map(r =>
     '<div class="recipe-thumb" onclick="openRecipe(' + r.id + ')">' +
-    '<div class="thumb-photo"><span>' + (CAT_EMOJIS[r.category]||'🍽️') + '</span></div>' +
+    '<div class="thumb-photo">' +
+      (r.photo
+        ? '<img src="' + esc(r.photo) + '" alt="' + esc(r.title) + '" onerror="this.style.display='none'">'
+        : '<span>' + (CAT_EMOJIS[r.category]||'🍽️') + '</span>') +
+    '</div>' +
     '<div class="thumb-body"><div class="thumb-category">' + (CAT_ICONS[r.category]||'🍽️') + ' ' + esc(r.category) + '</div>' +
     '<div class="thumb-title">' + esc(r.title) + '</div>' +
-    '<div class="thumb-meta"><span>👥 ' + r.servings + ' pers.</span><span>📋 ' + (r.ingredients||[]).length + ' ingr.</span></div></div>' +
+    '<div class="thumb-meta"><span>👥 ' + r.servings + ' pers.</span><span>📋 ' + (r.ingredients||[]).length + ' ingr.</span></div>' +
+    ((r.tags||[]).length ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">' + (r.tags||[]).slice(0,3).map(t => '<span style="font-size:.68rem;padding:2px 7px;background:var(--cream);border:1px solid var(--stone);border-radius:99px;color:var(--muted)">' + esc(t) + '</span>').join('') + '</div>' : '') +
+    '</div>' +
     '<div class="thumb-actions" onclick="event.stopPropagation()">' +
     '<button class="thumb-btn" onclick="editRecipe(' + r.id + ')">✏️ Modifier</button>' +
     '<button class="thumb-btn" onclick="exportSinglePDF(' + r.id + ')">📄 PDF</button>' +
@@ -527,12 +714,7 @@ function renderRecipes() {
   ).join('');
 }
 
-function filterRecipes(cat, btn) {
-  currentFilter = cat;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderRecipes();
-}
+// filterRecipes replaced by setCatFilter
 
 // ═══════════════════════════════════════════════════════════════
 //  OPEN / EDIT / DELETE
@@ -551,7 +733,9 @@ function buildViewHTML(r) {
     '<span class="recipe-category-badge ' + catClass(r.category) + '" style="margin-bottom:.5rem">' + esc(r.category) + '</span>' +
     '<h2 style="font-family:\'Playfair Display\',serif;font-size:1.6rem;margin-bottom:.3rem">' + esc(r.title) + '</h2>' +
     '<div style="font-size:.85rem;opacity:.7">👥 ' + r.servings + ' personnes</div></div>' +
+    (r.photo ? '<img src="' + esc(r.photo) + '" alt="' + esc(r.title) + '" onerror="this.style.display='none'" style="width:100%;height:240px;object-fit:cover;border-radius:var(--radius-sm);margin-bottom:1.5rem">' : '') +
     (r.source ? '<div style="margin-bottom:1rem"><a href="' + esc(r.source) + '" target="_blank" rel="noopener" style="font-size:.82rem;color:var(--terracotta);word-break:break-all">🔗 ' + esc(r.source) + '</a></div>' : '') +
+    ((r.tags||[]).length ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem">' + (r.tags||[]).map(t => '<span class="tag-chip">' + esc(t) + '</span>').join('') + '</div>' : '') +
     '<div style="margin-bottom:1.5rem"><div class="section-title">Ingrédients</div><ul class="ingredient-list">' + ings + '</ul></div>' +
     '<div><div class="section-title">Étapes</div><ol class="step-list">' + steps + '</ol></div>' +
 
@@ -695,7 +879,7 @@ function printRecipe(r) {
   const win  = window.open('', '_blank');
   const ings  = (r.ingredients||[]).map(i => '<li>• ' + esc(i.qty) + ' ' + esc(i.name) + '</li>').join('');
   const steps = (r.steps||[]).map((s,i) => '<div style="display:flex;gap:10px;margin-bottom:8px"><span style="min-width:24px;height:24px;background:#C4541A;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0">' + (i+1) + '</span><span>' + esc(s) + '</span></div>').join('');
-  win.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>' + esc(r.title) + '</title><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"><style>body{font-family:\'DM Sans\',sans-serif;max-width:800px;margin:0 auto;padding:2rem;color:#1A1208}h1{font-family:\'Playfair Display\',serif;font-size:2rem;margin-bottom:.4rem}h2{font-family:\'Playfair Display\',serif;font-size:1.2rem;margin:1.4rem 0 .7rem;border-bottom:2px solid #F0D080;padding-bottom:.3rem}.meta{color:#8C7B68;font-size:.9rem;margin-bottom:1rem}ul{list-style:none;padding:0}li{padding:4px 0;font-size:.92rem}.cat{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.75rem;font-weight:700;background:#C4541A;color:white;margin-bottom:.7rem}a{color:#C4541A;word-break:break-all}@media print{body{padding:1rem}}</style></head><body><span class="cat">' + esc(r.category) + '</span><h1>' + esc(r.title) + '</h1><div class="meta">👥 ' + r.servings + ' personnes' + (r.source ? ' · <a href="' + esc(r.source) + '">' + esc(r.source) + '</a>' : '') + '</div><h2>Ingrédients</h2><ul>' + ings + '</ul><h2>Étapes</h2>' + steps + '</body></html>');
+  win.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>' + esc(r.title) + '</title><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"><style>body{font-family:\'DM Sans\',sans-serif;max-width:800px;margin:0 auto;padding:2rem;color:#1A1208}h1{font-family:\'Playfair Display\',serif;font-size:2rem;margin-bottom:.4rem}h2{font-family:\'Playfair Display\',serif;font-size:1.2rem;margin:1.4rem 0 .7rem;border-bottom:2px solid #F0D080;padding-bottom:.3rem}.meta{color:#8C7B68;font-size:.9rem;margin-bottom:1rem}ul{list-style:none;padding:0}li{padding:4px 0;font-size:.92rem}.cat{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.75rem;font-weight:700;background:#C4541A;color:white;margin-bottom:.7rem}a{color:#C4541A;word-break:break-all}@media print{body{padding:1rem}}</style></head><body><span class="cat">' + esc(r.category) + '</span><h1>' + esc(r.title) + '</h1><div class="meta">👥 ' + r.servings + ' personnes' + (r.source ? ' · <a href="' + esc(r.source) + '">' + esc(r.source) + '</a>' : '') + '</div>' + (r.photo ? '<img src="' + esc(r.photo) + '" style="max-width:300px;border-radius:8px;margin:1rem 0;display:block">' : '') + '<h2>Ingrédients</h2><ul>' + ings + '</ul><h2>Étapes</h2>' + steps + '</body></html>');
   win.document.close();
   win.focus();
   setTimeout(() => win.print(), 600);
