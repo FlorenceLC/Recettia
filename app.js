@@ -581,7 +581,7 @@ function renderTagFilterBar() {
   bar.innerHTML = tags.map(tag => {
     const slug    = tag.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-');
     const active  = currentTagFilter === tag ? ' tag-active' : '';
-    return '<button class="filter-btn' + active + '" onclick="setTagFilter('' + esc(tag) + '',this)">' + esc(tag) + ' <span style="opacity:.6;font-size:.7rem">(' + tagCounts[tag] + ')</span></button>';
+    return '<button class="filter-btn' + active + '" onclick="setTagFilter(\'' + esc(tag) + '\',this)">' + esc(tag) + ' <span style="opacity:.6;font-size:.7rem">(' + tagCounts[tag] + ')</span></button>';
   }).join('');
 }
 
@@ -691,7 +691,7 @@ function renderRecipes() {
 
   if (!list.length) {
     grid.innerHTML = (recipes.length
-      ? '<div class="empty-state"><div class="empty-icon">🔍</div><h3>Aucun résultat</h3><p>Essayez d'autres mots-clés ou tags.</p></div>'
+      ? '<div class="empty-state"><div class="empty-icon">🔍</div><h3>Aucun résultat</h3><p>Essayez d\'autres mots-clés ou tags.</p></div>'
       : '<div class="empty-state"><div class="empty-icon">🍳</div><h3>Aucune recette ici</h3><p>Analysez votre première recette pour commencer !</p></div>');
     return;
   }
@@ -699,7 +699,7 @@ function renderRecipes() {
     '<div class="recipe-thumb" onclick="openRecipe(' + r.id + ')">' +
     '<div class="thumb-photo">' +
       (r.photo
-        ? '<img src="' + esc(r.photo) + '" alt="' + esc(r.title) + '" onerror="this.style.display='none'">'
+        ? '<img src="' + esc(r.photo) + '" alt="' + esc(r.title) + '" onerror="this.style.display=\'none\'">' 
         : '<span>' + (CAT_EMOJIS[r.category]||'🍽️') + '</span>') +
     '</div>' +
     '<div class="thumb-body"><div class="thumb-category">' + (CAT_ICONS[r.category]||'🍽️') + ' ' + esc(r.category) + '</div>' +
@@ -733,7 +733,7 @@ function buildViewHTML(r) {
     '<span class="recipe-category-badge ' + catClass(r.category) + '" style="margin-bottom:.5rem">' + esc(r.category) + '</span>' +
     '<h2 style="font-family:\'Playfair Display\',serif;font-size:1.6rem;margin-bottom:.3rem">' + esc(r.title) + '</h2>' +
     '<div style="font-size:.85rem;opacity:.7">👥 ' + r.servings + ' personnes</div></div>' +
-    (r.photo ? '<img src="' + esc(r.photo) + '" alt="' + esc(r.title) + '" onerror="this.style.display='none'" style="width:100%;height:240px;object-fit:cover;border-radius:var(--radius-sm);margin-bottom:1.5rem">' : '') +
+    (r.photo ? '<img src="' + esc(r.photo) + '" alt="' + esc(r.title) + '" onerror="this.style.display=\'none\'" style="width:100%;height:240px;object-fit:cover;border-radius:var(--radius-sm);margin-bottom:1.5rem">' : '') +
     (r.source ? '<div style="margin-bottom:1rem"><a href="' + esc(r.source) + '" target="_blank" rel="noopener" style="font-size:.82rem;color:var(--terracotta);word-break:break-all">🔗 ' + esc(r.source) + '</a></div>' : '') +
     ((r.tags||[]).length ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem">' + (r.tags||[]).map(t => '<span class="tag-chip">' + esc(t) + '</span>').join('') + '</div>' : '') +
     '<div style="margin-bottom:1.5rem"><div class="section-title">Ingrédients</div><ul class="ingredient-list">' + ings + '</ul></div>' +
