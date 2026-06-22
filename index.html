@@ -57,26 +57,11 @@
   </div>
 
   <div class="input-tabs">
-    <button class="input-tab active" onclick="switchTab('video',this)">🎬 Vidéo</button>
-    <button class="input-tab" onclick="switchTab('web',this)">🌐 Page web</button>
+    <button class="input-tab active" onclick="switchTab('web',this)">🌐 Page web</button>
     <button class="input-tab" onclick="switchTab('text',this)">📝 Texte</button>
   </div>
 
-  <div class="input-panel active" id="panel-video">
-    <div class="input-card">
-      <label>Lien de la vidéo</label>
-      <input type="url" id="video-url" placeholder="https://www.instagram.com/reel/… ou TikTok, YouTube Shorts…">
-      <div class="platforms-hint">
-        <span class="platform-tag">Instagram</span>
-        <span class="platform-tag">TikTok</span>
-        <span class="platform-tag">YouTube Shorts</span>
-        <span class="platform-tag">Pinterest</span>
-        <span class="platform-tag">Facebook</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="input-panel" id="panel-web">
+  <div class="input-panel active" id="panel-web">
     <div class="input-card">
       <label>Lien de la recette web</label>
       <input type="url" id="web-url" placeholder="https://www.marmiton.org/recette/…">
@@ -102,7 +87,13 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
     <div class="recipe-card">
       <div class="recipe-card-header">
         <span class="recipe-category-badge cat-entree" id="result-cat-badge">Entrée</span>
-        <input class="recipe-title-input" id="result-title" placeholder="Titre de la recette">
+        <div style="display:flex;align-items:center;gap:10px">
+          <input class="recipe-title-input" id="result-title" placeholder="Titre de la recette" style="flex:1">
+          <button id="validate-btn" onclick="toggleValidation()" title="Marquer comme validée"
+            style="background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.3);border-radius:99px;width:38px;height:38px;font-size:1.1rem;cursor:pointer;flex-shrink:0;transition:all .2s;display:flex;align-items:center;justify-content:center">
+            ⚪
+          </button>
+        </div>
       </div>
       <div class="recipe-meta">
         <div class="meta-item">
@@ -133,6 +124,16 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
             <img id="image-preview" src="" alt="preview"
               style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:2px solid var(--stone)">
           </div>
+        </div>
+      </div>
+
+      <!-- NUTRITION (calculé par IA) -->
+      <div id="nutrition-section" style="padding:.75rem 2rem;background:var(--cream);border-bottom:1px solid var(--stone);display:none">
+        <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.5rem">
+          🔥 Valeurs nutritionnelles (par personne, estimation IA)
+        </div>
+        <div style="display:flex;gap:1.5rem;flex-wrap:wrap" id="nutrition-values">
+          <!-- rempli en JS -->
         </div>
       </div>
 
@@ -230,7 +231,10 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
     <div class="shopping-result">
       <div class="selector-header">
         Liste de courses
-        <button class="btn-secondary btn-sm" onclick="window.print()">🖨️ Imprimer</button>
+        <div class="shopping-actions-row">
+          <button class="btn-secondary btn-sm" onclick="copyShoppingList()">📋 Copier</button>
+          <button class="btn-primary btn-sm" onclick="shareShoppingList()">📤 Partager</button>
+        </div>
       </div>
       <div id="shopping-list-result" class="empty-list-msg">
         Sélectionnez des recettes et cliquez sur Générer
@@ -341,6 +345,18 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
       <button class="modal-close" onclick="closeModal('planner-modal')">✕</button>
     </div>
     <div class="modal-body">
+      <div class="planner-search-bar">
+        <span style="opacity:.6">🔍</span>
+        <input type="text" id="planner-search-input" placeholder="Rechercher une recette…" oninput="renderPlannerRecipeList()" autocomplete="off">
+      </div>
+      <div class="planner-cat-filters" id="planner-cat-filters">
+        <button class="planner-cat-btn active" onclick="setPlannerCatFilter('all',this)">Toutes</button>
+        <button class="planner-cat-btn" onclick="setPlannerCatFilter('Viande',this)">🥩 Viande</button>
+        <button class="planner-cat-btn" onclick="setPlannerCatFilter('Poisson',this)">🐟 Poisson</button>
+        <button class="planner-cat-btn" onclick="setPlannerCatFilter('Dessert',this)">🍰 Dessert</button>
+        <button class="planner-cat-btn" onclick="setPlannerCatFilter('Cocktail',this)">🍹 Cocktail</button>
+        <button class="planner-cat-btn" onclick="setPlannerCatFilter('Entrée',this)">🥗 Entrée</button>
+      </div>
       <div class="recipe-select-list" id="planner-recipe-list"></div>
     </div>
     <div class="modal-footer">

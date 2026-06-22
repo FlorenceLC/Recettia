@@ -1175,3 +1175,82 @@ nav { display: flex; gap: 4px; }
 
 /* search highlight */
 .recipe-thumb.hidden { display: none; }
+
+/* ─── VALIDATION ──────────────────────────── */
+#validate-btn.validated {
+  background: #6B8F71 !important;
+  border-color: #6B8F71 !important;
+}
+.validated-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: .85rem;
+  margin-left: 4px;
+}
+
+/* ─── NUTRITION ───────────────────────────── */
+.nutrition-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+}
+.nutrition-chip .nv {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.nutrition-chip .nl {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ─── PLANNER MODAL SEARCH ────────────────── */
+.planner-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--cream);
+  border: 1.5px solid var(--stone);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-bottom: .75rem;
+}
+.planner-search-bar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .9rem;
+}
+.planner-cat-filters {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: .75rem;
+}
+.planner-cat-btn {
+  padding: 4px 12px;
+  border: 1.5px solid var(--stone);
+  background: white;
+  border-radius: 99px;
+  font-size: .78rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s;
+}
+.planner-cat-btn.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: white;
+}
+
+/* ─── SHOPPING ACTIONS ────────────────────── */
+.shopping-actions-row {
+  display: flex;
+  gap: 6px;
+}

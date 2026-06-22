@@ -22,21 +22,68 @@ const LOADING_STEPS = [
   'Finalisation de la fiche…',
 ];
 
-const SHOPPING_CATS = {
-  'Fruits & Légumes': ['tomate','carotte','oignon','ail','pomme','citron','salade',
-    'courgette','poivron','champignon','épinard','brocoli','haricot','pois','radis',
-    'concombre','betterave','navet','poireau','céleri','pomme de terre','patate',
-    'aubergine','artichaut','asperge','fenouil','potiron','courge','banane','fraise',
-    'framboise','mangue','ananas','poire','pêche','abricot','cerise','raisin','kiwi',
-    'échalote','persil','coriandre','basilic','thym','romarin','menthe','gingembre'],
-  'Viandes': ['poulet','boeuf','porc','agneau','veau','canard','dinde','saucisse',
-    'jambon','lard','bacon','escalope','côte','filet','steak','viande hachée','merguez'],
-  'Poissons & Fruits de mer': ['saumon','thon','cabillaud','crevette','moule','sole',
-    'bar','dorade','sardine','anchois','langoustine','homard','seiche','calmar','lieu'],
-  'Produits frais': ['lait','beurre','crème','oeuf','yaourt','fromage','mozzarella',
-    'parmesan','gruyère','ricotta','mascarpone','crème fraîche','lardons'],
-  'Épicerie': [],
-};
+// Ordre important : les catégories les plus spécifiques sont vérifiées en premier
+// pour éviter les faux positifs (ex: "blanc de poulet" ne doit pas matcher "blanc" ailleurs)
+const SHOPPING_CATS_ORDERED = [
+  ['Épices & Condiments', ['poivre','paprika','curcuma','cumin','curry','cannelle',
+    'muscade','piment','cayenne','herbes de provence','origan','sauce soja',
+    'vinaigre','moutarde','ketchup','mayonnaise','huile d\'olive','huile de tournesol',
+    'huile de sésame','sel','bouillon','cube de bouillon','sauce worcestershire',
+    'sirop d\'érable','miel','vanille','levure','bicarbonate','fécule','maïzena',
+    'safran','gingembre en poudre','ail en poudre','oignon en poudre','five spice',
+    'sumac','za\'atar','harissa','tabasco','sauce nuoc-mâm','nuoc mam','sauce huître',
+    'sauce poisson','sauce hoisin','mirin','vinaigre de riz','sauce teriyaki']],
+
+  ['Viandes & Charcuterie', ['poulet','boeuf','bœuf','porc','agneau','veau','canard',
+    'dinde','saucisse','saucisson','jambon','lard','bacon','escalope','côte de',
+    'côtelette','filet de poulet','filet de boeuf','filet mignon','steak','viande hachée',
+    'haché','merguez','chorizo','poitrine','travers','rôti','gigot','entrecôte',
+    'bavette','onglet','rumsteck','paleron','jarret','andouille','lardons','pancetta',
+    'prosciutto','salami','mortadelle','rillettes','pâté','foie gras','boudin',
+    'magret','cuisse de poulet','aile de poulet','blanc de poulet','escalope de poulet',
+    'escalope de veau','escalope de dinde','tartare de boeuf','carpaccio de boeuf']],
+
+  ['Poissons & Fruits de mer', ['saumon','thon','cabillaud','crevette','moule','sole',
+    'bar','dorade','sardine','anchois','langoustine','homard','seiche','calmar','lieu',
+    'truite','maquereau','colin','merlu','lotte','raie','rouget','églefin','tilapia',
+    'crabe','huître','coquille saint-jacques','noix de saint-jacques','poulpe',
+    'gambas','surimi','tarama','poisson blanc','filet de poisson','filet de saumon',
+    'pavé de saumon','pavé de thon']],
+
+  ['Produits laitiers & Œufs', ['lait','beurre','crème','crème fraîche','crème liquide',
+    'œuf','oeuf','yaourt','fromage','mozzarella','parmesan','gruyère','ricotta',
+    'mascarpone','comté','emmental','feta','chèvre','camembert','brie','cheddar',
+    'fromage blanc','fromage râpé','crème épaisse','crème entière','lait de coco',
+    'lait concentré','babeurre','skyr','petit-suisse','burrata','halloumi','raclette',
+    'fromage à raclette','crème pâtissière']],
+
+  ['Fruits & Légumes', ['tomate','carotte','oignon','ail','pomme','citron','salade',
+    'courgette','poivron','champignon','épinard','brocoli','haricot vert','haricot',
+    'pois','radis','concombre','betterave','navet','poireau','céleri','pomme de terre',
+    'patate','aubergine','artichaut','asperge','fenouil','potiron','courge','butternut',
+    'banane','fraise','framboise','mangue','ananas','poire','pêche','abricot','cerise',
+    'raisin','kiwi','échalote','persil frais','coriandre fraîche','basilic frais',
+    'thym frais','romarin frais','menthe fraîche','gingembre frais','citron vert',
+    'orange','pamplemousse','melon','pastèque','myrtille','mûre','cassis','rhubarbe',
+    'chou','chou-fleur','chou rouge','chou frisé','kale','roquette','mâche','cresson',
+    'endive','laitue','scarole','batavia','maïs doux','petit pois','fève','salsifis',
+    'topinambour','panais','rutabaga','igname','manioc','avocat','piment frais',
+    'piment fort','herbes fraîches','ciboulette','aneth','estragon','sauge fraîche',
+    'laurier frais']],
+
+  ['Épicerie sucrée & sèche', ['farine','sucre','chocolat','riz','pâtes','spaghetti',
+    'nouilles','quinoa','semoule','lentille','pois chiche','flocon d\'avoine','avoine',
+    'cacao','pépites de chocolat','levure chimique','poudre à lever','amande',
+    'noix','noisette','pistache','graine','sésame','pignon de pin','raisin sec',
+    'pruneau','datte','figue sèche','biscuit','céréales','pain','pain de mie',
+    'tortilla','wrap','vermicelle','boulgour','couscous','tapioca','gélatine',
+    'agar-agar','conserve','tomate pelée','coulis de tomate','concentré de tomate',
+    'sauce tomate','bouillon cube','huile végétale','vinaigre balsamique']],
+];
+
+// Compat : ancien format gardé pour ne rien casser ailleurs si réutilisé
+const SHOPPING_CATS = {};
+SHOPPING_CATS_ORDERED.forEach(([cat, kws]) => SHOPPING_CATS[cat] = kws);
 
 const GIST_FILENAME = 'recettai.json';
 
@@ -44,7 +91,7 @@ const GIST_FILENAME = 'recettai.json';
 let recipes          = [];
 let plannerData      = {};
 let shoppingSelected = new Set();
-let currentTab       = 'video';
+let currentTab       = 'web';
 let currentFilter    = 'all';
 let currentTagFilter = '';
 let searchQuery      = '';
@@ -303,9 +350,8 @@ async function callMistral(prompt) {
 }
 
 function buildPrompt(type, input) {
-  let ctx = type === 'video'  ? "Lien vidéo de recette : " + input + "\nDéduis la plateforme et génère une recette plausible."
-          : type === 'web'    ? "Lien page web de recette : " + input + "\nGénère la recette correspondante."
-          :                     "Texte de recette :\n\n" + input;
+  let ctx = type === 'web' ? "Lien page web de recette : " + input + "\nGénère la recette correspondante."
+          :                       "Texte de recette :\n\n" + input;
   const src = type !== 'text' ? '"' + input + '"' : 'null';
   return ctx + `
 
@@ -317,7 +363,8 @@ Retourne UNIQUEMENT ce JSON (sans markdown ni backticks) :
   "source": ${src},
   "ingredients": [{"qty":"200g","name":"pâtes"}],
   "steps": ["Étape 1."],
-  "tags": ["asiatique","rapide","hiver"]
+  "tags": ["asiatique","rapide","hiver"],
+  "nutrition": {"kcal": 450, "proteines": 25, "glucides": 50, "lipides": 15}
 }
 
 Règles :
@@ -327,7 +374,11 @@ Règles :
   * Saison : printemps, été, automne, hiver
   * Occasion : rapide, festif, comfort food, barbecue, apéro, brunch, batch cooking
   * Régime : végétarien, sans gluten, léger
-  Ne jamais inventer d'informations absentes du contenu fourni.`;
+- nutrition : estimation par personne (pour 1 part, pas pour toute la recette) à partir des ingrédients et quantités :
+  * kcal = calories totales estimées
+  * proteines, glucides, lipides = grammes estimés
+  Donne ta meilleure estimation raisonnable, même approximative — ne mets jamais null.
+  Ne jamais inventer d'informations absentes du contenu fourni pour le reste de la recette.`;
 }
 
 function parseJSON(text) {
@@ -343,9 +394,8 @@ function parseJSON(text) {
 // ═══════════════════════════════════════════════════════════════
 async function analyzeRecipe() {
   if (!getApiKey()) { toast("⚙️ Configurez votre clé Mistral dans les Paramètres.", 'error'); showPage('settings'); return; }
-  let input = currentTab === 'video' ? document.getElementById('video-url').value.trim()
-            : currentTab === 'web'   ? document.getElementById('web-url').value.trim()
-            :                         document.getElementById('recipe-text').value.trim();
+  let input = currentTab === 'web' ? document.getElementById('web-url').value.trim()
+            :                        document.getElementById('recipe-text').value.trim();
   if (!input) { toast('Veuillez saisir un contenu à analyser.', 'error'); return; }
 
   showLoading();
@@ -377,6 +427,9 @@ async function analyzeRecipe() {
 // ═══════════════════════════════════════════════════════════════
 //  RENDER RESULT CARD
 // ═══════════════════════════════════════════════════════════════
+let currentValidated = false;
+let currentNutrition = null;
+
 function renderResultCard(recipe) {
   document.getElementById('result-title').value = recipe.title || '';
   const cat = recipe.category || 'Entrée';
@@ -393,10 +446,47 @@ function renderResultCard(recipe) {
     imgInput.value = recipe.photo || '';
     previewImage(recipe.photo || '');
   }
+  // Validation
+  currentValidated = !!recipe.validated;
+  updateValidateBtn();
+  // Nutrition
+  currentNutrition = recipe.nutrition || null;
+  renderNutrition(currentNutrition);
   // Tags
   renderTagsEditor(recipe.tags || []);
   renderIngredients('result-ingredients', recipe.ingredients || []);
   renderSteps('result-steps', recipe.steps || []);
+}
+
+function toggleValidation() {
+  currentValidated = !currentValidated;
+  updateValidateBtn();
+}
+
+function updateValidateBtn() {
+  const btn = document.getElementById('validate-btn');
+  if (!btn) return;
+  if (currentValidated) {
+    btn.textContent = '✅';
+    btn.classList.add('validated');
+  } else {
+    btn.textContent = '⚪';
+    btn.classList.remove('validated');
+  }
+}
+
+function renderNutrition(nutrition) {
+  const section = document.getElementById('nutrition-section');
+  const values  = document.getElementById('nutrition-values');
+  if (!section || !values) return;
+  if (!nutrition) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  values.innerHTML = `
+    <div class="nutrition-chip"><span class="nv">${nutrition.kcal ?? '—'}</span><span class="nl">kcal</span></div>
+    <div class="nutrition-chip"><span class="nv">${nutrition.proteines ?? '—'}g</span><span class="nl">Protéines</span></div>
+    <div class="nutrition-chip"><span class="nv">${nutrition.glucides ?? '—'}g</span><span class="nl">Glucides</span></div>
+    <div class="nutrition-chip"><span class="nv">${nutrition.lipides ?? '—'}g</span><span class="nl">Lipides</span></div>
+  `;
 }
 
 function catClass(cat) {
@@ -634,6 +724,8 @@ function collectRecipe() {
   return {
     id: editingId || Date.now(), title, category, servings, source, photo,
     ingredients, steps, tags,
+    validated: currentValidated,
+    nutrition: currentNutrition,
     base_servings: servings,
     base_ingredients: JSON.parse(JSON.stringify(ingredients)),
     created_at: new Date().toISOString(),
@@ -703,7 +795,7 @@ function renderRecipes() {
         : '<span>' + (CAT_EMOJIS[r.category]||'🍽️') + '</span>') +
     '</div>' +
     '<div class="thumb-body"><div class="thumb-category">' + (CAT_ICONS[r.category]||'🍽️') + ' ' + esc(r.category) + '</div>' +
-    '<div class="thumb-title">' + esc(r.title) + '</div>' +
+    '<div class="thumb-title">' + esc(r.title) + (r.validated ? ' ✅' : '') + '</div>' +
     '<div class="thumb-meta"><span>👥 ' + r.servings + ' pers.</span><span>📋 ' + (r.ingredients||[]).length + ' ingr.</span></div>' +
     ((r.tags||[]).length ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">' + (r.tags||[]).slice(0,3).map(t => '<span style="font-size:.68rem;padding:2px 7px;background:var(--cream);border:1px solid var(--stone);border-radius:99px;color:var(--muted)">' + esc(t) + '</span>').join('') + '</div>' : '') +
     '</div>' +
@@ -731,10 +823,16 @@ function buildViewHTML(r) {
   const steps = (r.steps||[]).map((s,i) => '<li class="step-item"><span class="step-num">' + (i+1) + '</span><span style="font-size:.9rem;line-height:1.5">' + esc(s) + '</span></li>').join('');
   return '<div style="background:var(--ink);padding:1.5rem;border-radius:var(--radius-sm);color:white;margin:-1.5rem -1.5rem 1.5rem">' +
     '<span class="recipe-category-badge ' + catClass(r.category) + '" style="margin-bottom:.5rem">' + esc(r.category) + '</span>' +
-    '<h2 style="font-family:\'Playfair Display\',serif;font-size:1.6rem;margin-bottom:.3rem">' + esc(r.title) + '</h2>' +
+    '<h2 style="font-family:\'Playfair Display\',serif;font-size:1.6rem;margin-bottom:.3rem">' + esc(r.title) + (r.validated ? ' ✅' : '') + '</h2>' +
     '<div style="font-size:.85rem;opacity:.7">👥 ' + r.servings + ' personnes</div></div>' +
     (r.photo ? '<img src="' + esc(r.photo) + '" alt="' + esc(r.title) + '" onerror="this.style.display=\'none\'" style="width:100%;height:240px;object-fit:cover;border-radius:var(--radius-sm);margin-bottom:1.5rem">' : '') +
     (r.source ? '<div style="margin-bottom:1rem"><a href="' + esc(r.source) + '" target="_blank" rel="noopener" style="font-size:.82rem;color:var(--terracotta);word-break:break-all">🔗 ' + esc(r.source) + '</a></div>' : '') +
+    (r.nutrition ? '<div style="display:flex;gap:1.5rem;margin-bottom:1.25rem;padding:.75rem 1rem;background:var(--cream);border-radius:var(--radius-sm)">' +
+      '<div class="nutrition-chip"><span class="nv">' + (r.nutrition.kcal ?? '—') + '</span><span class="nl">kcal</span></div>' +
+      '<div class="nutrition-chip"><span class="nv">' + (r.nutrition.proteines ?? '—') + 'g</span><span class="nl">Protéines</span></div>' +
+      '<div class="nutrition-chip"><span class="nv">' + (r.nutrition.glucides ?? '—') + 'g</span><span class="nl">Glucides</span></div>' +
+      '<div class="nutrition-chip"><span class="nv">' + (r.nutrition.lipides ?? '—') + 'g</span><span class="nl">Lipides</span></div>' +
+    '</div>' : '') +
     ((r.tags||[]).length ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem">' + (r.tags||[]).map(t => '<span class="tag-chip">' + esc(t) + '</span>').join('') + '</div>' : '') +
     '<div style="margin-bottom:1.5rem"><div class="section-title">Ingrédients</div><ul class="ingredient-list">' + ings + '</ul></div>' +
     '<div><div class="section-title">Étapes</div><ol class="step-list">' + steps + '</ol></div>' +
@@ -792,28 +890,145 @@ function toggleShopping(id, el) {
   if (shoppingSelected.has(id)) { shoppingSelected.delete(id); cb.checked = false; }
   else { shoppingSelected.add(id); cb.checked = true; }
 }
+// Parse une quantité textuelle en {valeur numérique, unité, reste}
+// Exemples : "200g" -> {value:200, unit:'g'}, "2" -> {value:2, unit:''}, "1 cuillère à soupe" -> {value:1, unit:'cuillère à soupe'}
+function parseQty(qty) {
+  if (!qty) return { value: null, unit: '', raw: '' };
+  const str = qty.trim();
+  const m = str.match(/^([\d.,]+)\s*(.*)$/);
+  if (!m) return { value: null, unit: '', raw: str };
+  const value = parseFloat(m[1].replace(',', '.'));
+  const unit  = m[2].trim().toLowerCase();
+  if (isNaN(value)) return { value: null, unit: '', raw: str };
+  return { value, unit, raw: str };
+}
+
+function formatQty(value, unit) {
+  const v = value % 1 === 0 ? value : Math.round(value * 10) / 10;
+  return unit ? v + (unit.match(/^[a-zA-Zàâéèêîïôû%]/) ? ' ' : '') + unit : String(v);
+}
+
+function categorizeIngredient(name) {
+  const low = name.toLowerCase();
+  for (const [cat, kws] of SHOPPING_CATS_ORDERED) {
+    if (kws.some(k => low.includes(k))) return cat;
+  }
+  return 'Épicerie sucrée & sèche';
+}
+
+let lastShoppingList = null; // gardé en mémoire pour le bouton copier
+
 function generateShoppingList() {
   const selected = recipes.filter(r => shoppingSelected.has(r.id));
   if (!selected.length) { toast('Sélectionnez au moins une recette.', 'error'); return; }
-  const agg = {};
-  selected.forEach(r => (r.ingredients||[]).forEach(ing => {
+
+  // Agrégation avec fusion intelligente des quantités (même unité = addition)
+  const agg = {}; // key: nom normalisé -> { name, byUnit: {unit: total}, noUnitQtys: [] }
+  selected.forEach(r => (r.ingredients || []).forEach(ing => {
     const key = ing.name.toLowerCase().trim();
-    if (!agg[key]) agg[key] = { name: ing.name, qtys: [] };
-    if (ing.qty) agg[key].qtys.push(ing.qty);
+    if (!agg[key]) agg[key] = { name: ing.name, byUnit: {}, noUnitQtys: [] };
+    const parsed = parseQty(ing.qty);
+    if (parsed.value !== null) {
+      const unitKey = parsed.unit || '_unitless';
+      agg[key].byUnit[unitKey] = (agg[key].byUnit[unitKey] || 0) + parsed.value;
+    } else if (ing.qty) {
+      agg[key].noUnitQtys.push(ing.qty);
+    }
   }));
-  const cats = {};
-  Object.values(agg).forEach(item => {
-    let found = 'Épicerie';
-    const low = item.name.toLowerCase();
-    for (const [cat, kws] of Object.entries(SHOPPING_CATS)) { if (kws.some(k => low.includes(k))) { found = cat; break; } }
-    if (!cats[found]) cats[found] = [];
-    cats[found].push(item);
+
+  // Construction de la liste finale avec quantités fusionnées
+  const merged = Object.values(agg).map(item => {
+    const parts = [];
+    Object.entries(item.byUnit).forEach(([unit, total]) => {
+      parts.push(formatQty(total, unit === '_unitless' ? '' : unit));
+    });
+    parts.push(...item.noUnitQtys);
+    return { name: item.name, qtyDisplay: parts.join(' + ') };
   });
-  document.getElementById('shopping-list-result').innerHTML = Object.entries(cats).map(([cat, items]) =>
+
+  // Catégorisation avec l'ordre prioritaire (épices avant légumes, etc.)
+  const cats = {};
+  merged.forEach(item => {
+    const cat = categorizeIngredient(item.name);
+    if (!cats[cat]) cats[cat] = [];
+    cats[cat].push(item);
+  });
+
+  // Ordre d'affichage fixe et logique
+  const catOrder = ['Viandes & Charcuterie', 'Poissons & Fruits de mer', 'Fruits & Légumes',
+                     'Produits laitiers & Œufs', 'Épices & Condiments', 'Épicerie sucrée & sèche'];
+
+  lastShoppingList = catOrder
+    .filter(c => cats[c] && cats[c].length)
+    .map(c => ({ cat: c, items: cats[c].sort((a,b) => a.name.localeCompare(b.name)) }));
+
+  document.getElementById('shopping-list-result').innerHTML = lastShoppingList.map(({cat, items}) =>
     '<div class="shopping-cat-section"><div class="shopping-cat-title">' + cat + '</div>' +
-    items.map(item => '<div class="shopping-item"><input type="checkbox" onchange="this.closest(\'.shopping-item\').classList.toggle(\'checked\',this.checked)"><label>' + (item.qtys.length ? item.qtys.join(' + ') + ' ' : '') + esc(item.name) + '</label></div>').join('') + '</div>'
+    items.map(item => '<div class="shopping-item"><input type="checkbox" onchange="this.closest(\'.shopping-item\').classList.toggle(\'checked\',this.checked)"><label>' + (item.qtyDisplay ? esc(item.qtyDisplay) + ' ' : '') + esc(item.name) + '</label></div>').join('') + '</div>'
   ).join('');
+
   toast('✅ Liste générée !', 'success');
+}
+
+// Copie la liste de courses formatée (texte structuré, compatible OneNote/Notes/etc.)
+async function copyShoppingList() {
+  if (!lastShoppingList || !lastShoppingList.length) {
+    toast('Générez d\'abord une liste de courses.', 'error');
+    return;
+  }
+  let text = '🛒 LISTE DE COURSES\n';
+  text += '═'.repeat(30) + '\n\n';
+  lastShoppingList.forEach(({ cat, items }) => {
+    text += cat.toUpperCase() + '\n';
+    items.forEach(item => {
+      text += '☐ ' + (item.qtyDisplay ? item.qtyDisplay + ' ' : '') + item.name + '\n';
+    });
+    text += '\n';
+  });
+
+  try {
+    await navigator.clipboard.writeText(text.trim());
+    toast('📋 Liste copiée ! Collez-la dans OneNote, Notes…', 'success');
+  } catch (err) {
+    // Fallback pour navigateurs/contextes sans clipboard API
+    const textarea = document.createElement('textarea');
+    textarea.value = text.trim();
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      toast('📋 Liste copiée !', 'success');
+    } catch {
+      toast('❌ Impossible de copier automatiquement.', 'error');
+    }
+    textarea.remove();
+  }
+}
+
+// Partage natif si disponible (mobile), sinon copie
+async function shareShoppingList() {
+  if (!lastShoppingList || !lastShoppingList.length) {
+    toast('Générez d\'abord une liste de courses.', 'error');
+    return;
+  }
+  let text = '🛒 Liste de courses\n\n';
+  lastShoppingList.forEach(({ cat, items }) => {
+    text += cat.toUpperCase() + '\n';
+    items.forEach(item => { text += '• ' + (item.qtyDisplay ? item.qtyDisplay + ' ' : '') + item.name + '\n'; });
+    text += '\n';
+  });
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Liste de courses', text: text.trim() });
+    } catch (err) {
+      if (err.name !== 'AbortError') copyShoppingList();
+    }
+  } else {
+    copyShoppingList();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -828,18 +1043,53 @@ function renderPlanner() {
 function getPlannerChips(day, meal) {
   return (plannerData[day+'_'+meal]||[]).map(id => {
     const r = recipes.find(x => x.id==id);
-    return r ? '<div class="planner-recipe-chip"><span class="chip-title">' + esc(r.title) + '</span><button class="chip-remove" onclick="removePlannerChip(\'' + day + '\',\'' + meal + '\',' + id + ')">✕</button></div>' : '';
+    return r ? '<div class="planner-recipe-chip" onclick="openRecipe(' + id + ')" style="cursor:pointer" title="Voir la recette"><span class="chip-title">' + esc(r.title) + '</span><button class="chip-remove" onclick="event.stopPropagation();removePlannerChip(\'' + day + '\',\'' + meal + '\',' + id + ')">✕</button></div>' : '';
   }).join('');
 }
+
+let plannerCatFilter = 'all';
+
+function setPlannerCatFilter(cat, btn) {
+  plannerCatFilter = cat;
+  document.querySelectorAll('#planner-cat-filters .planner-cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPlannerRecipeList();
+}
+
 function openPlannerModal(day, meal) {
   plannerTarget = { day, meal };
   document.getElementById('planner-modal-title').textContent = day + ' · ' + meal;
-  const list = document.getElementById('planner-recipe-list');
-  list.innerHTML = recipes.length
-    ? recipes.map(r => '<div class="recipe-select-item" onclick="addToPlanner(' + r.id + ')"><span>' + (CAT_ICONS[r.category]||'🍽️') + '</span><div><div style="font-size:.9rem;font-weight:500">' + esc(r.title) + '</div><div style="font-size:.78rem;color:var(--muted)">' + esc(r.category) + '</div></div></div>').join('')
-    : '<div style="padding:1rem;color:var(--muted);font-size:.9rem">Aucune recette enregistrée</div>';
+  // reset search/filter each time modal opens
+  const searchInput = document.getElementById('planner-search-input');
+  if (searchInput) searchInput.value = '';
+  plannerCatFilter = 'all';
+  document.querySelectorAll('#planner-cat-filters .planner-cat-btn').forEach(b => b.classList.remove('active'));
+  const allBtn = document.querySelector('#planner-cat-filters .planner-cat-btn');
+  if (allBtn) allBtn.classList.add('active');
+  renderPlannerRecipeList();
   document.getElementById('planner-modal').classList.add('show');
 }
+
+function renderPlannerRecipeList() {
+  const list  = document.getElementById('planner-recipe-list');
+  if (!list) return;
+  const query = (document.getElementById('planner-search-input')?.value || '').toLowerCase().trim();
+
+  let filtered = recipes;
+  if (plannerCatFilter !== 'all') filtered = filtered.filter(r => r.category === plannerCatFilter);
+  if (query) {
+    const words = query.split(/\s+/);
+    filtered = filtered.filter(r => {
+      const haystack = [r.title, r.category, ...(r.tags||[]), ...(r.ingredients||[]).map(i=>i.name)].join(' ').toLowerCase();
+      return words.every(w => haystack.includes(w));
+    });
+  }
+
+  list.innerHTML = filtered.length
+    ? filtered.map(r => '<div class="recipe-select-item" onclick="addToPlanner(' + r.id + ')"><span>' + (CAT_ICONS[r.category]||'🍽️') + '</span><div><div style="font-size:.9rem;font-weight:500">' + esc(r.title) + (r.validated ? ' ✅' : '') + '</div><div style="font-size:.78rem;color:var(--muted)">' + esc(r.category) + '</div></div></div>').join('')
+    : '<div style="padding:1rem;color:var(--muted);font-size:.9rem;text-align:center">Aucune recette trouvée</div>';
+}
+
 function addToPlanner(id) {
   if (!plannerTarget) return;
   const key = plannerTarget.day + '_' + plannerTarget.meal;
@@ -879,7 +1129,8 @@ function printRecipe(r) {
   const win  = window.open('', '_blank');
   const ings  = (r.ingredients||[]).map(i => '<li>• ' + esc(i.qty) + ' ' + esc(i.name) + '</li>').join('');
   const steps = (r.steps||[]).map((s,i) => '<div style="display:flex;gap:10px;margin-bottom:8px"><span style="min-width:24px;height:24px;background:#C4541A;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0">' + (i+1) + '</span><span>' + esc(s) + '</span></div>').join('');
-  win.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>' + esc(r.title) + '</title><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"><style>body{font-family:\'DM Sans\',sans-serif;max-width:800px;margin:0 auto;padding:2rem;color:#1A1208}h1{font-family:\'Playfair Display\',serif;font-size:2rem;margin-bottom:.4rem}h2{font-family:\'Playfair Display\',serif;font-size:1.2rem;margin:1.4rem 0 .7rem;border-bottom:2px solid #F0D080;padding-bottom:.3rem}.meta{color:#8C7B68;font-size:.9rem;margin-bottom:1rem}ul{list-style:none;padding:0}li{padding:4px 0;font-size:.92rem}.cat{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.75rem;font-weight:700;background:#C4541A;color:white;margin-bottom:.7rem}a{color:#C4541A;word-break:break-all}@media print{body{padding:1rem}}</style></head><body><span class="cat">' + esc(r.category) + '</span><h1>' + esc(r.title) + '</h1><div class="meta">👥 ' + r.servings + ' personnes' + (r.source ? ' · <a href="' + esc(r.source) + '">' + esc(r.source) + '</a>' : '') + '</div>' + (r.photo ? '<img src="' + esc(r.photo) + '" style="max-width:300px;border-radius:8px;margin:1rem 0;display:block">' : '') + '<h2>Ingrédients</h2><ul>' + ings + '</ul><h2>Étapes</h2>' + steps + '</body></html>');
+  const nutritionHtml = r.nutrition ? '<div style="display:flex;gap:1.5rem;margin:1rem 0;padding:.75rem 1rem;background:#FAF7F2;border-radius:8px"><div><strong>' + (r.nutrition.kcal??'—') + '</strong> kcal</div><div><strong>' + (r.nutrition.proteines??'—') + 'g</strong> Protéines</div><div><strong>' + (r.nutrition.glucides??'—') + 'g</strong> Glucides</div><div><strong>' + (r.nutrition.lipides??'—') + 'g</strong> Lipides</div></div>' : '';
+  win.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>' + esc(r.title) + '</title><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"><style>body{font-family:\'DM Sans\',sans-serif;max-width:800px;margin:0 auto;padding:2rem;color:#1A1208}h1{font-family:\'Playfair Display\',serif;font-size:2rem;margin-bottom:.4rem}h2{font-family:\'Playfair Display\',serif;font-size:1.2rem;margin:1.4rem 0 .7rem;border-bottom:2px solid #F0D080;padding-bottom:.3rem}.meta{color:#8C7B68;font-size:.9rem;margin-bottom:1rem}ul{list-style:none;padding:0}li{padding:4px 0;font-size:.92rem}.cat{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.75rem;font-weight:700;background:#C4541A;color:white;margin-bottom:.7rem}a{color:#C4541A;word-break:break-all}@media print{body{padding:1rem}}</style></head><body><span class="cat">' + esc(r.category) + '</span><h1>' + esc(r.title) + (r.validated ? ' ✅' : '') + '</h1><div class="meta">👥 ' + r.servings + ' personnes' + (r.source ? ' · <a href="' + esc(r.source) + '">' + esc(r.source) + '</a>' : '') + '</div>' + (r.photo ? '<img src="' + esc(r.photo) + '" style="max-width:300px;border-radius:8px;margin:1rem 0;display:block">' : '') + nutritionHtml + '<h2>Ingrédients</h2><ul>' + ings + '</ul><h2>Étapes</h2>' + steps + '</body></html>');
   win.document.close();
   win.focus();
   setTimeout(() => win.print(), 600);
