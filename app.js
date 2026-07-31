@@ -361,7 +361,10 @@ Retourne UNIQUEMENT ce JSON (sans markdown ni backticks) :
   "category": "Viande",
   "servings": 4,
   "source": ${src},
-  "ingredients": [{"qty":"200g","name":"pâtes"}],
+  "ingredient_sections": [
+    {"label": "Pour la sauce", "ingredients": [{"qty":"2 càs","name":"sauce soja"}]},
+    {"label": "Pour la garniture", "ingredients": [{"qty":"200g","name":"pâtes"}]}
+  ],
   "steps": ["Étape 1."],
   "tags": ["asiatique","rapide","hiver"],
   "nutrition": {"kcal": 450, "proteines": 25, "glucides": 50, "lipides": 15}
@@ -369,6 +372,9 @@ Retourne UNIQUEMENT ce JSON (sans markdown ni backticks) :
 
 Règles :
 - category = Viande|Poisson|Dessert|Cocktail|Entrée uniquement
+- ingredient_sections : si la recette a plusieurs groupes d'ingrédients (ex: "Pour la marinade", "Pour la sauce", "Pour les boulettes"), crée une section par groupe avec un "label" descriptif. Si tous les ingrédients sont au même niveau, utilise une seule section avec "label": "Ingrédients".
+- Le champ "ingredients" de la recette (liste plate) NE doit PAS être présent — utiliser uniquement "ingredient_sections".
+- Quantités : toujours écrire "càs" (jamais "cuillère à soupe", "c. à soupe", "c.à.s", "cs") et "càc" (jamais "cuillère à café", "c. à café", "c.à.c", "cc").
 - tags : tableau de 2 à 5 tags pertinents parmi ces catégories :
   * Cuisine : français, italien, asiatique, méditerranéen, américain, mexicain, indien, japonais, thaï, libanais
   * Saison : printemps, été, automne, hiver
@@ -408,7 +414,7 @@ async function analyzeRecipe() {
     if (!recipe || !recipe.title) throw new Error('Réponse invalide');
     editingId = null;
     baseServings    = recipe.servings || 4;
-    baseIngredients = JSON.parse(JSON.stringify(recipe.ingredients || []));
+    baseIngredients = JSON.parse(JSON.stringify(flatIngredients(recipe)));
     renderResultCard(recipe);
     document.getElementById('recipe-result').classList.add('show');
     document.getElementById('recipe-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -454,7 +460,11 @@ function renderResultCard(recipe) {
   renderNutrition(currentNutrition);
   // Tags
   renderTagsEditor(recipe.tags || []);
-  renderIngredients('result-ingredients', recipe.ingredients || []);
+  // Support ingredient_sections (nouveau format) ou ingredients (ancien format)
+  const sections = recipe.ingredient_sections && recipe.ingredient_sections.length
+    ? recipe.ingredient_sections
+    : [{ label: 'Ingrédients', ingredients: recipe.ingredients || [] }];
+  renderIngredientSections('result-ingredients', sections);
   renderSteps('result-steps', recipe.steps || []);
 }
 
@@ -512,20 +522,107 @@ function previewImage(url) {
 // ═══════════════════════════════════════════════════════════════
 //  INGREDIENTS / STEPS
 // ═══════════════════════════════════════════════════════════════
-function renderIngredients(listId, ings) {
-  const list = document.getElementById(listId);
-  list.innerHTML = '';
-  ings.forEach(ing => appendIngRow(list, typeof ing === 'object' ? (ing.qty||'') : '', typeof ing === 'object' ? (ing.name||ing) : ing));
+// ─── INGREDIENT SECTIONS ────────────────────────────────────────
+// Un "ingredient_sections" = [{label, ingredients:[{qty,name}]}]
+// Rendu : pour chaque section, un titre + une liste d'items
+
+function renderIngredientSections(containerId, sections) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  (sections || []).forEach((sec, si) => {
+    // Titre de section
+    const header = document.createElement('div');
+    header.className = 'ing-section-header';
+    header.innerHTML =
+      '<input class="editable-field ing-section-label" data-si="' + si + '" placeholder="Nom de la préparation (ex: Pour la sauce)" value="' + esc(sec.label||'') + '">' +
+      '<button class="delete-item-btn" title="Supprimer cette section" onclick="this.closest(\'.ing-section\').remove()">✕</button>';
+    // Liste d'ingrédients
+    const ul = document.createElement('ul');
+    ul.className = 'ingredient-list ing-section-list';
+    (sec.ingredients || []).forEach(ing => appendIngRow(ul, ing.qty||'', ing.name||''));
+    // Bouton ajouter
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-item-btn';
+    addBtn.textContent = '+ Ingrédient';
+    addBtn.onclick = () => { appendIngRow(ul, '', ''); ul.lastChild.querySelectorAll('input')[1].focus(); };
+    // Wrapper
+    const wrap = document.createElement('div');
+    wrap.className = 'ing-section';
+    wrap.appendChild(header);
+    wrap.appendChild(ul);
+    wrap.appendChild(addBtn);
+    container.appendChild(wrap);
+  });
 }
+
+function addIngredientSection(containerId) {
+  const container = document.getElementById(containerId);
+  const si = container.querySelectorAll('.ing-section').length;
+  const header = document.createElement('div');
+  header.className = 'ing-section-header';
+  header.innerHTML =
+    '<input class="editable-field ing-section-label" data-si="' + si + '" placeholder="Nom de la préparation (ex: Pour la sauce)" value="">' +
+    '<button class="delete-item-btn" title="Supprimer cette section" onclick="this.closest(\'.ing-section\').remove()">✕</button>';
+  const ul = document.createElement('ul');
+  ul.className = 'ingredient-list ing-section-list';
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-item-btn';
+  addBtn.textContent = '+ Ingrédient';
+  addBtn.onclick = () => { appendIngRow(ul, '', ''); ul.lastChild.querySelectorAll('input')[1].focus(); };
+  const wrap = document.createElement('div');
+  wrap.className = 'ing-section';
+  wrap.appendChild(header);
+  wrap.appendChild(ul);
+  wrap.appendChild(addBtn);
+  container.appendChild(wrap);
+  header.querySelector('input').focus();
+}
+
+// Compat : ancienne API plate → convertie en section unique
+function renderIngredients(listId, ings) {
+  renderIngredientSections(listId, [{ label: 'Ingrédients', ingredients: ings.map(i => typeof i === 'object' ? i : { qty: '', name: i }) }]);
+}
+
 function appendIngRow(list, qty, name) {
   const li = document.createElement('li');
   li.className = 'ingredient-item';
   li.innerHTML = '<input class="editable-field" style="width:70px;flex:none" placeholder="Qté" value="' + esc(qty) + '"><input class="editable-field" placeholder="Ingrédient" value="' + esc(name) + '"><button class="delete-item-btn" onclick="this.closest(\'li\').remove()">✕</button>';
   list.appendChild(li);
 }
-function addIngredient(listId) {
-  appendIngRow(document.getElementById(listId), '', '');
-  document.getElementById(listId).lastChild.querySelectorAll('input')[1].focus();
+
+function addIngredient(containerId) {
+  // Ajouter dans la dernière section existante, ou créer une section
+  const container = document.getElementById(containerId);
+  let lastList = container.querySelector('.ing-section:last-child .ing-section-list');
+  if (!lastList) { addIngredientSection(containerId); lastList = container.querySelector('.ing-section:last-child .ing-section-list'); }
+  appendIngRow(lastList, '', '');
+  lastList.lastChild.querySelectorAll('input')[1].focus();
+}
+
+// Collecte toutes les sections depuis le DOM
+function collectIngredientSections(containerId) {
+  const container = document.getElementById(containerId);
+  const sections = [];
+  container.querySelectorAll('.ing-section').forEach(sec => {
+    const label = (sec.querySelector('.ing-section-label')?.value || '').trim() || 'Ingrédients';
+    const ingredients = [];
+    sec.querySelectorAll('.ingredient-item').forEach(li => {
+      const ins = li.querySelectorAll('input');
+      const qty = ins[0] ? ins[0].value.trim() : '';
+      const name = ins[1] ? ins[1].value.trim() : '';
+      if (name) ingredients.push({ qty, name });
+    });
+    if (ingredients.length) sections.push({ label, ingredients });
+  });
+  return sections;
+}
+
+// Liste plate de tous les ingrédients (pour la liste de courses)
+function flatIngredients(recipe) {
+  if (recipe.ingredient_sections && recipe.ingredient_sections.length) {
+    return recipe.ingredient_sections.flatMap(s => s.ingredients || []);
+  }
+  return recipe.ingredients || [];
 }
 
 function renderSteps(listId, steps) {
@@ -555,8 +652,10 @@ function recalcServings() {
   const newVal = parseInt(document.getElementById('result-servings').value) || baseServings;
   if (!baseServings) return;
   const ratio = newVal / baseServings;
+  // Flat list of base ingredients (from all sections)
+  const allBase = baseIngredients; // kept as flat array for ratio calc
   document.querySelectorAll('#result-ingredients .ingredient-item').forEach((item, i) => {
-    const base = baseIngredients[i];
+    const base = allBase[i];
     if (!base) return;
     const inp = item.querySelectorAll('input')[0];
     if (inp) inp.value = scaleQty(base.qty || '', ratio);
@@ -708,13 +807,9 @@ function collectRecipe() {
   const category = document.getElementById('result-cat-badge').textContent.trim();
   const imgInput = document.getElementById('result-image-input');
   const photo    = imgInput ? imgInput.value.trim() : '';
-  const ingredients = [];
-  document.querySelectorAll('#result-ingredients .ingredient-item').forEach(li => {
-    const ins = li.querySelectorAll('input');
-    const qty = ins[0] ? ins[0].value.trim() : '';
-    const name = ins[1] ? ins[1].value.trim() : '';
-    if (name) ingredients.push({ qty, name });
-  });
+  const ingredient_sections = collectIngredientSections('result-ingredients');
+  // Compat : garder un champ "ingredients" plat pour la recherche et la liste de courses
+  const ingredients = ingredient_sections.flatMap(s => s.ingredients);
   const steps = [];
   document.querySelectorAll('#result-steps .step-item').forEach(li => {
     const t = li.querySelector('textarea');
@@ -723,7 +818,7 @@ function collectRecipe() {
   const tags = collectTags();
   return {
     id: editingId || Date.now(), title, category, servings, source, photo,
-    ingredients, steps, tags,
+    ingredient_sections, ingredients, steps, tags,
     validated: currentValidated,
     nutrition: currentNutrition,
     base_servings: servings,
@@ -819,7 +914,13 @@ function openRecipe(id) {
 }
 
 function buildViewHTML(r) {
-  const ings  = (r.ingredients||[]).map(i => '<li class="ingredient-item"><span style="color:var(--gold);font-size:.6rem;flex-shrink:0">●</span><span style="font-size:.9rem">' + esc(i.qty) + ' ' + esc(i.name) + '</span></li>').join('');
+  const ingSections = r.ingredient_sections && r.ingredient_sections.length
+    ? r.ingredient_sections
+    : [{ label: 'Ingrédients', ingredients: r.ingredients || [] }];
+  const ings = ingSections.map(sec =>
+    (ingSections.length > 1 ? '<li style="list-style:none;font-weight:700;font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--terracotta);padding:8px 0 4px;border-top:1px solid var(--stone);margin-top:4px">' + esc(sec.label) + '</li>' : '') +
+    (sec.ingredients || []).map(i => '<li class="ingredient-item"><span style="color:var(--gold);font-size:.6rem;flex-shrink:0">●</span><span style="font-size:.9rem">' + esc(i.qty) + ' ' + esc(i.name) + '</span></li>').join('')
+  ).join('');
   const steps = (r.steps||[]).map((s,i) => '<li class="step-item"><span class="step-num">' + (i+1) + '</span><span style="font-size:.9rem;line-height:1.5">' + esc(s) + '</span></li>').join('');
   return '<div style="background:var(--ink);padding:1.5rem;border-radius:var(--radius-sm);color:white;margin:-1.5rem -1.5rem 1.5rem">' +
     '<span class="recipe-category-badge ' + catClass(r.category) + '" style="margin-bottom:.5rem">' + esc(r.category) + '</span>' +
@@ -845,7 +946,7 @@ function editRecipe(id) {
   if (!r) return;
   editingId = id;
   baseServings    = r.base_servings || r.servings;
-  baseIngredients = JSON.parse(JSON.stringify(r.base_ingredients || r.ingredients));
+  baseIngredients = JSON.parse(JSON.stringify(r.base_ingredients || flatIngredients(r)));
   showPage('home');
   renderResultCard(r);
   document.getElementById('recipe-result').classList.add('show');
@@ -918,13 +1019,146 @@ function categorizeIngredient(name) {
 
 let lastShoppingList = null; // gardé en mémoire pour le bouton copier
 
-function generateShoppingList() {
+async function generateShoppingList() {
   const selected = recipes.filter(r => shoppingSelected.has(r.id));
   if (!selected.length) { toast('Sélectionnez au moins une recette.', 'error'); return; }
 
-  // Agrégation avec fusion intelligente des quantités (même unité = addition)
-  const agg = {}; // key: nom normalisé -> { name, byUnit: {unit: total}, noUnitQtys: [] }
-  selected.forEach(r => (r.ingredients || []).forEach(ing => {
+  // Construire la liste brute de tous les ingrédients (avec source recette)
+  const rawLines = [];
+  selected.forEach(r => {
+    flatIngredients(r).forEach(ing => {
+      if (ing.name) rawLines.push((ing.qty ? ing.qty + ' ' : '') + ing.name);
+    });
+  });
+
+  const resultEl = document.getElementById('shopping-list-result');
+  resultEl.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--muted)">✨ Optimisation par l\'IA en cours…</div>';
+
+  // Si pas de clé Mistral, fallback mode local
+  if (!getApiKey()) {
+    toast('⚙️ Clé Mistral manquante — génération locale.', '');
+    generateShoppingListLocal(selected);
+    return;
+  }
+
+  const shoppingPrompt = `Tu es un expert en organisation de listes de courses.
+
+Ta mission est de corriger, dédupliquer et réorganiser la liste de courses que je vais te fournir.
+
+Respecte impérativement les règles suivantes :
+
+1. Classement des ingrédients
+
+Chaque ingrédient doit être placé dans la bonne catégorie, même si la recette l'a classé au mauvais endroit.
+
+Utilise uniquement ces catégories :
+
+- 🥩 Viandes & Charcuterie
+- 🐟 Poissons & Fruits de mer
+- 🥛 Produits laitiers & Œufs
+- 🥦 Fruits & Légumes
+- 🌾 Épicerie sèche
+- 🧂 Épices, Herbes & Condiments
+- 🥫 Conserves
+- 🧊 Surgelés
+- 🥤 Boissons
+- 🍞 Boulangerie (si nécessaire)
+- 📦 Autres (uniquement si aucune autre catégorie ne convient)
+
+Exemples :
+- ail → Fruits & Légumes
+- échalote → Fruits & Légumes
+- oignon → Fruits & Légumes
+- gingembre frais → Fruits & Légumes
+- gingembre en poudre → Épices, Herbes & Condiments
+- persil, coriandre, basilic, ciboulette, aneth → Épices, Herbes & Condiments
+- huile d'olive → Épices, Herbes & Condiments
+- sauce soja → Épices, Herbes & Condiments
+- moutarde → Épices, Herbes & Condiments
+- miel → Épices, Herbes & Condiments
+- chapelure → Épicerie sèche
+- farine → Épicerie sèche
+
+Ne conserve jamais un ingrédient dans une mauvaise catégorie.
+
+2. Fusion des doublons
+
+Fusionne automatiquement tous les ingrédients identiques, même lorsqu'ils sont écrits différemment.
+Additionne les quantités lorsqu'elles utilisent la même unité. Si plusieurs unités sont présentes (g, ml, càs, càc...), les conserver lorsqu'elles ne sont pas convertibles facilement.
+
+3. Ignorer les précisions de recette
+
+Supprime les mentions comme : pour la sauce, pour les boulettes, pour la marinade, pour la décoration, pour servir, facultatif, recommandé, au choix, pour l'accompagnement.
+
+4. Normalisation
+
+Uniformise les noms :
+- gousse d'ail → ail
+- ail haché → ail
+- persil frais → persil
+- coriandre fraîche → coriandre
+- huile d'olive extra vierge → huile d'olive
+- sauce soja salée → sauce soja
+- sauce soja sucrée → sauce soja
+
+Conserve uniquement le nom le plus simple.
+
+5. Addition des quantités
+
+Additionne toutes les quantités identiques.
+Exemples : 2 œufs + 4 œufs = 6 œufs, 100g beurre + 30g beurre = 130g beurre
+Si les unités sont incompatibles (g et cuillères), ne fais pas de conversion approximative et conserve les deux valeurs.
+
+6. Tri
+
+Dans chaque catégorie : classer les ingrédients par ordre alphabétique ; ne jamais afficher deux fois le même ingrédient.
+
+7. Format de sortie STRICT
+
+Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks, sans explication.
+Format :
+[
+  {
+    "cat": "🥩 Viandes & Charcuterie",
+    "items": [
+      {"qty": "500g", "name": "boeuf haché"},
+      {"qty": "", "name": "lardons"}
+    ]
+  },
+  ...
+]
+N'inclure que les catégories qui ont au moins un ingrédient.
+
+Voici la liste d'ingrédients à traiter :
+${rawLines.join('\n')}`;
+
+  try {
+    const raw = await callMistral(shoppingPrompt);
+    const clean = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    lastShoppingList = parsed.map(sec => ({
+      cat: sec.cat,
+      items: (sec.items || []).map(i => ({ name: i.name, qtyDisplay: i.qty || '' })),
+    }));
+
+    resultEl.innerHTML = lastShoppingList.map(({ cat, items }) =>
+      '<div class="shopping-cat-section"><div class="shopping-cat-title">' + esc(cat) + '</div>' +
+      items.map(item => '<div class="shopping-item"><input type="checkbox" onchange="this.closest(\'.shopping-item\').classList.toggle(\'checked\',this.checked)"><label>' + (item.qtyDisplay ? esc(item.qtyDisplay) + ' ' : '') + esc(item.name) + '</label></div>').join('') + '</div>'
+    ).join('');
+
+    toast('✅ Liste optimisée par l\'IA !', 'success');
+  } catch (err) {
+    console.error('[shopping AI]', err);
+    toast('⚠️ Erreur IA, génération locale utilisée.', '');
+    generateShoppingListLocal(selected);
+  }
+}
+
+// Fallback local (si pas de clé ou erreur Mistral)
+function generateShoppingListLocal(selected) {
+  const agg = {};
+  selected.forEach(r => flatIngredients(r).forEach(ing => {
     const key = ing.name.toLowerCase().trim();
     if (!agg[key]) agg[key] = { name: ing.name, byUnit: {}, noUnitQtys: [] };
     const parsed = parseQty(ing.qty);
@@ -935,38 +1169,27 @@ function generateShoppingList() {
       agg[key].noUnitQtys.push(ing.qty);
     }
   }));
-
-  // Construction de la liste finale avec quantités fusionnées
   const merged = Object.values(agg).map(item => {
     const parts = [];
-    Object.entries(item.byUnit).forEach(([unit, total]) => {
-      parts.push(formatQty(total, unit === '_unitless' ? '' : unit));
-    });
+    Object.entries(item.byUnit).forEach(([unit, total]) => parts.push(formatQty(total, unit === '_unitless' ? '' : unit)));
     parts.push(...item.noUnitQtys);
     return { name: item.name, qtyDisplay: parts.join(' + ') };
   });
-
-  // Catégorisation avec l'ordre prioritaire (épices avant légumes, etc.)
   const cats = {};
   merged.forEach(item => {
     const cat = categorizeIngredient(item.name);
     if (!cats[cat]) cats[cat] = [];
     cats[cat].push(item);
   });
-
-  // Ordre d'affichage fixe et logique
   const catOrder = ['Viandes & Charcuterie', 'Poissons & Fruits de mer', 'Fruits & Légumes',
                      'Produits laitiers & Œufs', 'Épices & Condiments', 'Épicerie sucrée & sèche'];
-
   lastShoppingList = catOrder
     .filter(c => cats[c] && cats[c].length)
     .map(c => ({ cat: c, items: cats[c].sort((a,b) => a.name.localeCompare(b.name)) }));
-
   document.getElementById('shopping-list-result').innerHTML = lastShoppingList.map(({cat, items}) =>
     '<div class="shopping-cat-section"><div class="shopping-cat-title">' + cat + '</div>' +
     items.map(item => '<div class="shopping-item"><input type="checkbox" onchange="this.closest(\'.shopping-item\').classList.toggle(\'checked\',this.checked)"><label>' + (item.qtyDisplay ? esc(item.qtyDisplay) + ' ' : '') + esc(item.name) + '</label></div>').join('') + '</div>'
   ).join('');
-
   toast('✅ Liste générée !', 'success');
 }
 
@@ -979,7 +1202,7 @@ async function copyShoppingList() {
   let text = '🛒 LISTE DE COURSES\n';
   text += '═'.repeat(30) + '\n\n';
   lastShoppingList.forEach(({ cat, items }) => {
-    text += cat.toUpperCase() + '\n';
+    text += (cat || '').toUpperCase() + '\n';
     items.forEach(item => {
       text += '☐ ' + (item.qtyDisplay ? item.qtyDisplay + ' ' : '') + item.name + '\n';
     });
@@ -1127,7 +1350,13 @@ function exportCurrentPDF() { const r = collectRecipe(); if (!r.title) { toast('
 function exportSinglePDF(id) { const r = recipes.find(x => x.id==id); if (r) printRecipe(r); }
 function printRecipe(r) {
   const win  = window.open('', '_blank');
-  const ings  = (r.ingredients||[]).map(i => '<li>• ' + esc(i.qty) + ' ' + esc(i.name) + '</li>').join('');
+  const pdfSections = r.ingredient_sections && r.ingredient_sections.length
+    ? r.ingredient_sections
+    : [{ label: null, ingredients: r.ingredients || [] }];
+  const ings = pdfSections.map(sec =>
+    (pdfSections.length > 1 && sec.label ? '<li style="list-style:none;font-weight:700;font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;color:#C4541A;padding:8px 0 2px;margin-top:6px">' + esc(sec.label) + '</li>' : '') +
+    (sec.ingredients || []).map(i => '<li>• ' + esc(i.qty) + ' ' + esc(i.name) + '</li>').join('')
+  ).join('');
   const steps = (r.steps||[]).map((s,i) => '<div style="display:flex;gap:10px;margin-bottom:8px"><span style="min-width:24px;height:24px;background:#C4541A;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0">' + (i+1) + '</span><span>' + esc(s) + '</span></div>').join('');
   const nutritionHtml = r.nutrition ? '<div style="display:flex;gap:1.5rem;margin:1rem 0;padding:.75rem 1rem;background:#FAF7F2;border-radius:8px"><div><strong>' + (r.nutrition.kcal??'—') + '</strong> kcal</div><div><strong>' + (r.nutrition.proteines??'—') + 'g</strong> Protéines</div><div><strong>' + (r.nutrition.glucides??'—') + 'g</strong> Glucides</div><div><strong>' + (r.nutrition.lipides??'—') + 'g</strong> Lipides</div></div>' : '';
   win.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>' + esc(r.title) + '</title><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"><style>body{font-family:\'DM Sans\',sans-serif;max-width:800px;margin:0 auto;padding:2rem;color:#1A1208}h1{font-family:\'Playfair Display\',serif;font-size:2rem;margin-bottom:.4rem}h2{font-family:\'Playfair Display\',serif;font-size:1.2rem;margin:1.4rem 0 .7rem;border-bottom:2px solid #F0D080;padding-bottom:.3rem}.meta{color:#8C7B68;font-size:.9rem;margin-bottom:1rem}ul{list-style:none;padding:0}li{padding:4px 0;font-size:.92rem}.cat{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.75rem;font-weight:700;background:#C4541A;color:white;margin-bottom:.7rem}a{color:#C4541A;word-break:break-all}@media print{body{padding:1rem}}</style></head><body><span class="cat">' + esc(r.category) + '</span><h1>' + esc(r.title) + (r.validated ? ' ✅' : '') + '</h1><div class="meta">👥 ' + r.servings + ' personnes' + (r.source ? ' · <a href="' + esc(r.source) + '">' + esc(r.source) + '</a>' : '') + '</div>' + (r.photo ? '<img src="' + esc(r.photo) + '" style="max-width:300px;border-radius:8px;margin:1rem 0;display:block">' : '') + nutritionHtml + '<h2>Ingrédients</h2><ul>' + ings + '</ul><h2>Étapes</h2>' + steps + '</body></html>');

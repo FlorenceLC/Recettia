@@ -450,6 +450,39 @@ nav { display: flex; gap: 4px; }
 }
 .add-item-btn:hover { background: rgba(196,84,26,0.08); }
 
+/* ─── INGREDIENT SECTIONS ─────────────────────────────────── */
+.ing-section {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(250, 247, 242, 0.7);
+  border: 1px solid var(--stone);
+  border-radius: var(--radius-sm);
+}
+.ing-section:last-child { margin-bottom: 0; }
+
+.ing-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0.5rem;
+}
+.ing-section-label {
+  flex: 1;
+  font-size: 0.78rem !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--terracotta) !important;
+  background: transparent !important;
+  border-bottom: 1.5px dashed var(--stone) !important;
+  border-radius: 0 !important;
+  padding: 2px 4px !important;
+}
+.ing-section-label:hover { background: rgba(196,84,26,0.05) !important; }
+.ing-section-label:focus { background: rgba(196,84,26,0.08) !important; border-color: var(--terracotta) !important; }
+
+.ing-section-list { margin-bottom: 0.5rem; }
+
 .ingredient-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
 
 .ingredient-item {

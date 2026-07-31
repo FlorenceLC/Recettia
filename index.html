@@ -153,9 +153,12 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
           <div class="recipe-ingredients-col">
             <div class="section-title">
               Ingrédients
-              <button class="add-item-btn" onclick="addIngredient('result-ingredients')">+ Ajouter</button>
+              <div style="display:flex;gap:6px">
+                <button class="add-item-btn" onclick="addIngredient('result-ingredients')">+ Ingrédient</button>
+                <button class="add-item-btn" onclick="addIngredientSection('result-ingredients')" title="Ajouter une section (ex: Pour la sauce)">+ Section</button>
+              </div>
             </div>
-            <ul class="ingredient-list" id="result-ingredients"></ul>
+            <div id="result-ingredients"></div>
           </div>
           <div class="steps-col-inner">
             <div class="section-title">
