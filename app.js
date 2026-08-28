@@ -256,6 +256,7 @@ function showPage(page) {
   if (page === 'recipes')  renderRecipes();
   if (page === 'shopping') renderShoppingSelector();
   if (page === 'planner')  renderPlanner();
+  if (page === 'pizza')    renderPizzaMenu();
 }
 
 function switchTab(tab, btn) {
@@ -1415,4 +1416,118 @@ async function clearAll() {
 function esc(str) {
   if (!str && str !== 0) return '';
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MENU PIZZAS
+// ═══════════════════════════════════════════════════════════════
+
+// Détecte si une recette est une pizza
+function isPizza(r) {
+  const haystack = [r.title || '', ...(r.tags || []), r.category || ''].join(' ').toLowerCase();
+  const ingrNames = flatIngredients(r).map(i => (i.name || '').toLowerCase()).join(' ');
+  const pizzaKws = ['pizza', 'pizzas', 'napolitaine', 'margherita', 'quattro', 'calzone', 'focaccia pizza'];
+  return pizzaKws.some(kw => haystack.includes(kw) || ingrNames.includes(kw));
+}
+
+// Extrait la liste de garniture (sans les bases : pâte, farine, eau, levure, sel, huile d'olive)
+function getPizzaToppings(r) {
+  const baseIngredients = ['farine','eau','levure','sel','huile d\'olive','huile','sucre','semoule',
+    'pâte à pizza','pâte pizza','pâton','boulette de pâte','pâte brisée'];
+  return flatIngredients(r)
+    .map(i => (i.name || '').trim())
+    .filter(name => {
+      const low = name.toLowerCase();
+      return name && !baseIngredients.some(b => low.includes(b));
+    });
+}
+
+function renderPizzaMenu() {
+  const pizzas = recipes.filter(isPizza);
+  const grid   = document.getElementById('pizza-menu-grid');
+  const empty  = document.getElementById('pizza-menu-empty');
+
+  if (!pizzas.length) {
+    grid.style.display  = 'none';
+    empty.style.display = 'flex';
+    return;
+  }
+  grid.style.display  = '';
+  empty.style.display = 'none';
+
+  grid.innerHTML = pizzas.map(r => {
+    const toppings = getPizzaToppings(r);
+    const kcal     = r.nutrition?.kcal     ?? null;
+    const prot     = r.nutrition?.proteines ?? null;
+    // Estimation pour la pizza entière (servings parts)
+    const totalKcal = kcal && r.servings ? Math.round(kcal * r.servings) : kcal;
+    const totalProt = prot && r.servings ? Math.round(prot * r.servings) : prot;
+
+    return `<div class="pizza-card">
+      ${r.photo ? `<div class="pizza-card-photo"><img src="${esc(r.photo)}" alt="${esc(r.title)}" onerror="this.closest('.pizza-card-photo').style.display='none'"></div>` : `<div class="pizza-card-photo pizza-card-nophoto"><span>🍕</span></div>`}
+      <div class="pizza-card-body">
+        <div class="pizza-card-name">${esc(r.title)}</div>
+        <div class="pizza-card-stats">
+          ${totalKcal !== null ? `<span class="pizza-stat">🔥 ${totalKcal} kcal</span>` : ''}
+          ${totalProt !== null ? `<span class="pizza-stat">💪 ${totalProt}g protéines</span>` : ''}
+        </div>
+        <div class="pizza-card-toppings">
+          ${toppings.map(t => `<span class="pizza-topping">${esc(t)}</span>`).join(', ')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Texte formaté pour partage ────────────────────────────────
+function buildPizzaMenuText() {
+  const pizzas = recipes.filter(isPizza);
+  if (!pizzas.length) return null;
+
+  let text = '🍕 CARTE DES PIZZAS MAISON\n';
+  text += '━'.repeat(30) + '\n\n';
+
+  pizzas.forEach(r => {
+    const toppings  = getPizzaToppings(r);
+    const kcal      = r.nutrition?.kcal      ?? null;
+    const prot      = r.nutrition?.proteines ?? null;
+    const totalKcal = kcal && r.servings ? Math.round(kcal * r.servings) : kcal;
+    const totalProt = prot && r.servings ? Math.round(prot * r.servings) : prot;
+
+    text += `🍕 ${r.title.toUpperCase()}\n`;
+    const stats = [];
+    if (totalKcal) stats.push(`${totalKcal} kcal`);
+    if (totalProt) stats.push(`${totalProt}g protéines`);
+    if (stats.length) text += `   ${stats.join(' · ')}\n`;
+    if (toppings.length) text += `   ${toppings.join(', ')}\n`;
+    text += '\n';
+  });
+
+  text += '━'.repeat(30) + '\n';
+  text += 'Quelle pizza tu choisis ? 😊';
+  return text;
+}
+
+async function copyPizzaMenu() {
+  const text = buildPizzaMenuText();
+  if (!text) { toast('Aucune pizza à copier.', 'error'); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('📋 Carte copiée ! Collez-la dans votre messagerie.', 'success');
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('📋 Carte copiée !', 'success'); } catch { toast('❌ Impossible de copier.', 'error'); }
+    ta.remove();
+  }
+}
+
+async function sharePizzaMenu() {
+  const text = buildPizzaMenuText();
+  if (!text) { toast('Aucune pizza à partager.', 'error'); return; }
+  if (navigator.share) {
+    try { await navigator.share({ title: '🍕 Carte des Pizzas', text }); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  copyPizzaMenu();
 }

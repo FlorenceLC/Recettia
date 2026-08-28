@@ -28,6 +28,9 @@
     <button class="nav-btn" onclick="showPage('planner')" id="nav-planner">
       <span>📅</span><span class="nav-label">Planning</span>
     </button>
+    <button class="nav-btn" onclick="showPage('pizza')" id="nav-pizza" title="Menu Pizzas">
+      <span>🍕</span><span class="nav-label">Pizzas</span>
+    </button>
     <button class="nav-btn" onclick="showPage('settings')" id="nav-settings" title="Paramètres">
       <span>⚙️</span>
     </button>
@@ -260,8 +263,8 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
 </div>
 
 <!-- ══════════════════════════════
-     PAGE : PARAMÈTRES
-══════════════════════════════ -->
+     PAGE : MENU PIZZAS
+══════════════════════════════ -->\n<div class="page" id="page-pizza">\n  <div class="pizza-menu-header">\n    <div class="pizza-menu-title-wrap">\n      <div class="pizza-menu-logo">🍕</div>\n      <div>\n        <h2 class="pizza-menu-title">Carte des Pizzas</h2>\n        <p class="pizza-menu-subtitle">Toutes nos pizzas maison</p>\n      </div>\n    </div>\n    <div class="pizza-menu-actions">\n      <button class="btn-secondary btn-sm" onclick="copyPizzaMenu()">📋 Copier</button>\n      <button class="btn-primary btn-sm" onclick="sharePizzaMenu()">📤 Partager</button>\n    </div>\n  </div>\n  <div id="pizza-menu-grid" class="pizza-menu-grid">\n    <!-- rempli dynamiquement -->\n  </div>\n  <div id="pizza-menu-empty" class="pizza-empty-state" style="display:none">\n    <div class="empty-icon">🍕</div>\n    <h3>Aucune pizza encore</h3>\n    <p>Enregistrez une recette de pizza — elle apparaîtra ici automatiquement !</p>\n    <button class="btn-primary" onclick="showPage('home')">✨ Analyser une recette</button>\n  </div>\n</div>\n\n<!-- ══════════════════════════════\n     PAGE : PARAMÈTRES\n══════════════════════════════ -->
 <div class="page" id="page-settings">
   <h2 class="page-title">⚙️ Paramètres</h2>
   <p class="page-subtitle">Configuration de l'application.</p>
