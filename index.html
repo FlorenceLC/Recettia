@@ -264,7 +264,35 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
 
 <!-- ══════════════════════════════
      PAGE : MENU PIZZAS
-══════════════════════════════ -->\n<div class="page" id="page-pizza">\n  <div class="pizza-menu-header">\n    <div class="pizza-menu-title-wrap">\n      <div class="pizza-menu-logo">🍕</div>\n      <div>\n        <h2 class="pizza-menu-title">Carte des Pizzas</h2>\n        <p class="pizza-menu-subtitle">Toutes nos pizzas maison</p>\n      </div>\n    </div>\n    <div class="pizza-menu-actions">\n      <button class="btn-secondary btn-sm" onclick="copyPizzaMenu()">📋 Copier</button>\n      <button class="btn-primary btn-sm" onclick="sharePizzaMenu()">📤 Partager</button>\n    </div>\n  </div>\n  <div id="pizza-menu-grid" class="pizza-menu-grid">\n    <!-- rempli dynamiquement -->\n  </div>\n  <div id="pizza-menu-empty" class="pizza-empty-state" style="display:none">\n    <div class="empty-icon">🍕</div>\n    <h3>Aucune pizza encore</h3>\n    <p>Enregistrez une recette de pizza — elle apparaîtra ici automatiquement !</p>\n    <button class="btn-primary" onclick="showPage('home')">✨ Analyser une recette</button>\n  </div>\n</div>\n\n<!-- ══════════════════════════════\n     PAGE : PARAMÈTRES\n══════════════════════════════ -->
+══════════════════════════════ -->
+<div class="page" id="page-pizza">
+  <div class="pizza-menu-header">
+    <div class="pizza-menu-title-wrap">
+      <div class="pizza-menu-logo">🍕</div>
+      <div>
+        <h2 class="pizza-menu-title">Carte des Pizzas</h2>
+        <p class="pizza-menu-subtitle">Toutes nos pizzas maison</p>
+      </div>
+    </div>
+    <div class="pizza-menu-actions">
+      <button class="btn-secondary btn-sm" onclick="copyPizzaMenu()">📋 Copier</button>
+      <button class="btn-primary btn-sm" onclick="sharePizzaMenu()">📤 Partager</button>
+    </div>
+  </div>
+  <div id="pizza-menu-grid" class="pizza-menu-grid">
+    <!-- rempli dynamiquement -->
+  </div>
+  <div id="pizza-menu-empty" class="pizza-empty-state" style="display:none">
+    <div class="empty-icon">🍕</div>
+    <h3>Aucune pizza encore</h3>
+    <p>Enregistrez une recette de pizza — elle apparaîtra ici automatiquement !</p>
+    <button class="btn-primary" onclick="showPage('home')">✨ Analyser une recette</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     PAGE : PARAMÈTRES
+══════════════════════════════ -->
 <div class="page" id="page-settings">
   <h2 class="page-title">⚙️ Paramètres</h2>
   <p class="page-subtitle">Configuration de l'application.</p>
@@ -367,6 +395,41 @@ Ingrédients : 3 pommes, 200g de farine, 100g de beurre…
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeModal('planner-modal')">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL : ÉDITION PIZZA CARTE ══════════ -->
+<div class="modal-overlay" id="pizza-edit-modal" onclick="bgClose(event,'pizza-edit-modal')">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">✏️ Modifier la carte</span>
+      <button class="modal-close" onclick="closeModal('pizza-edit-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pizza-edit-id">
+      <p style="font-size:.85rem;color:var(--muted);margin:0 0 1rem">
+        Ces modifications s'appliquent uniquement à la <strong>carte des pizzas</strong> — la recette originale n'est pas touchée.
+      </p>
+      <div style="margin-bottom:1rem">
+        <label style="font-size:.82rem;font-weight:600;color:var(--ink);display:block;margin-bottom:4px">Nom sur la carte</label>
+        <input type="text" id="pizza-edit-name" placeholder="Nom de la pizza…"
+          style="width:100%;box-sizing:border-box;border:1.5px solid var(--stone);border-radius:var(--radius-sm);padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none"
+          onfocus="this.style.borderColor='var(--terracotta)'" onblur="this.style.borderColor='var(--stone)'">
+      </div>
+      <div>
+        <label style="font-size:.82rem;font-weight:600;color:var(--ink);display:block;margin-bottom:4px">Garniture <span style="font-weight:400;color:var(--muted)">(séparée par des virgules)</span></label>
+        <textarea id="pizza-edit-toppings" rows="3" placeholder="Tomate, mozzarella, basilic…"
+          style="width:100%;box-sizing:border-box;border:1.5px solid var(--stone);border-radius:var(--radius-sm);padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;resize:vertical"
+          onfocus="this.style.borderColor='var(--terracotta)'" onblur="this.style.borderColor='var(--stone)'"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:.75rem;justify-content:space-between">
+      <button class="btn-secondary" onclick="resetPizzaEdit()" style="font-size:.82rem">↺ Réinitialiser</button>
+      <div style="display:flex;gap:.75rem">
+        <button class="btn-secondary" onclick="closeModal('pizza-edit-modal')">Annuler</button>
+        <button class="btn-primary" onclick="savePizzaEdit()">✅ Enregistrer</button>
+      </div>
     </div>
   </div>
 </div>

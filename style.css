@@ -1393,6 +1393,28 @@ nav { display: flex; gap: 4px; }
   gap: .6rem;
 }
 
+.pizza-card-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.pizza-edit-btn {
+  background: none;
+  border: 1px solid var(--stone);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: .8rem;
+  cursor: pointer;
+  color: var(--muted);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity .2s, border-color .2s;
+}
+.pizza-card:hover .pizza-edit-btn { opacity: 1; }
+.pizza-edit-btn:hover { border-color: var(--terracotta); color: var(--terracotta); }
+
 .pizza-card-name {
   font-family: 'Playfair Display', serif;
   font-size: 1.15rem;

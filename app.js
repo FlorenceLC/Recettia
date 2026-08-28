@@ -1430,18 +1430,76 @@ function isPizza(r) {
   return pizzaKws.some(kw => haystack.includes(kw) || ingrNames.includes(kw));
 }
 
-// Extrait la liste de garniture (sans les bases : pâte, farine, eau, levure, sel, huile d'olive)
+// ─── Overrides locaux (nom, garniture) — indépendants des recettes ─────────
+function getPizzaOverrides() {
+  try { return JSON.parse(localStorage.getItem('recettai_pizza_overrides') || '{}'); } catch { return {}; }
+}
+function savePizzaOverride(id, data) {
+  const ov = getPizzaOverrides();
+  ov[id] = { ...ov[id], ...data };
+  localStorage.setItem('recettai_pizza_overrides', JSON.stringify(ov));
+}
+
+// Extrait la garniture par défaut depuis la recette
+// (sans les bases : pâte, farine, eau, levure, sel, huile…)
+const PIZZA_BASE_KWS = ['farine','eau','levure','sel','huile d\'olive','huile de tournesol',
+  'huile','sucre','semoule','pâte à pizza','pâte pizza','pâton','boulette de pâte',
+  'pâte brisée','pâte feuilletée','poolish','biga'];
+
 function getPizzaToppings(r) {
-  const baseIngredients = ['farine','eau','levure','sel','huile d\'olive','huile','sucre','semoule',
-    'pâte à pizza','pâte pizza','pâton','boulette de pâte','pâte brisée'];
+  const ov = getPizzaOverrides()[r.id];
+  // Si un override de garniture existe, on l'utilise
+  if (ov && ov.toppings !== undefined) return ov.toppings;
+  // Sinon on calcule depuis la recette en filtrant les bases
   return flatIngredients(r)
     .map(i => (i.name || '').trim())
     .filter(name => {
+      if (!name) return false;
       const low = name.toLowerCase();
-      return name && !baseIngredients.some(b => low.includes(b));
+      return !PIZZA_BASE_KWS.some(b => low.includes(b));
     });
 }
 
+function getPizzaDisplayName(r) {
+  const ov = getPizzaOverrides()[r.id];
+  return (ov && ov.name) ? ov.name : r.title;
+}
+
+// ─── Édition locale de la carte ─────────────────────────────────
+function openPizzaEditor(id) {
+  const r = recipes.find(x => x.id == id);
+  if (!r) return;
+  const currentName     = getPizzaDisplayName(r);
+  const currentToppings = getPizzaToppings(r).join(', ');
+
+  document.getElementById('pizza-edit-id').value       = id;
+  document.getElementById('pizza-edit-name').value     = currentName;
+  document.getElementById('pizza-edit-toppings').value = currentToppings;
+  document.getElementById('pizza-edit-modal').classList.add('show');
+}
+
+function savePizzaEdit() {
+  const id      = document.getElementById('pizza-edit-id').value;
+  const name    = document.getElementById('pizza-edit-name').value.trim();
+  const toppStr = document.getElementById('pizza-edit-toppings').value;
+  const toppings = toppStr.split(',').map(t => t.trim()).filter(Boolean);
+  savePizzaOverride(id, { name: name || undefined, toppings });
+  closeModal('pizza-edit-modal');
+  renderPizzaMenu();
+  toast('✅ Carte mise à jour !', 'success');
+}
+
+function resetPizzaEdit() {
+  const id = document.getElementById('pizza-edit-id').value;
+  const ov = getPizzaOverrides();
+  delete ov[id];
+  localStorage.setItem('recettai_pizza_overrides', JSON.stringify(ov));
+  closeModal('pizza-edit-modal');
+  renderPizzaMenu();
+  toast('Carte réinitialisée depuis la recette.', '');
+}
+
+// ─── Rendu de la carte ──────────────────────────────────────────
 function renderPizzaMenu() {
   const pizzas = recipes.filter(isPizza);
   const grid   = document.getElementById('pizza-menu-grid');
@@ -1456,26 +1514,29 @@ function renderPizzaMenu() {
   empty.style.display = 'none';
 
   grid.innerHTML = pizzas.map(r => {
+    const name     = getPizzaDisplayName(r);
     const toppings = getPizzaToppings(r);
-    const kcal     = r.nutrition?.kcal     ?? null;
+    const kcal     = r.nutrition?.kcal      ?? null;
     const prot     = r.nutrition?.proteines ?? null;
-    // Estimation pour la pizza entière (servings parts)
     const totalKcal = kcal && r.servings ? Math.round(kcal * r.servings) : kcal;
     const totalProt = prot && r.servings ? Math.round(prot * r.servings) : prot;
 
-    return `<div class="pizza-card">
-      ${r.photo ? `<div class="pizza-card-photo"><img src="${esc(r.photo)}" alt="${esc(r.title)}" onerror="this.closest('.pizza-card-photo').style.display='none'"></div>` : `<div class="pizza-card-photo pizza-card-nophoto"><span>🍕</span></div>`}
-      <div class="pizza-card-body">
-        <div class="pizza-card-name">${esc(r.title)}</div>
-        <div class="pizza-card-stats">
-          ${totalKcal !== null ? `<span class="pizza-stat">🔥 ${totalKcal} kcal</span>` : ''}
-          ${totalProt !== null ? `<span class="pizza-stat">💪 ${totalProt}g protéines</span>` : ''}
-        </div>
-        <div class="pizza-card-toppings">
-          ${toppings.map(t => `<span class="pizza-topping">${esc(t)}</span>`).join(', ')}
-        </div>
-      </div>
-    </div>`;
+    return '<div class="pizza-card">' +
+      (r.photo
+        ? '<div class="pizza-card-photo"><img src="' + esc(r.photo) + '" alt="' + esc(name) + '" onerror="this.closest(\'.pizza-card-photo\').style.display=\'none\'"></div>'
+        : '<div class="pizza-card-photo pizza-card-nophoto"><span>🍕</span></div>') +
+      '<div class="pizza-card-body">' +
+        '<div class="pizza-card-top-row">' +
+          '<div class="pizza-card-name">' + esc(name) + '</div>' +
+          '<button class="pizza-edit-btn" onclick="openPizzaEditor(' + r.id + ')" title="Modifier la carte">✏️</button>' +
+        '</div>' +
+        '<div class="pizza-card-stats">' +
+          (totalKcal !== null ? '<span class="pizza-stat">🔥 ' + totalKcal + ' kcal</span>' : '') +
+          (totalProt !== null ? '<span class="pizza-stat">💪 ' + totalProt + 'g protéines</span>' : '') +
+        '</div>' +
+        '<div class="pizza-card-toppings">' + esc(toppings.join(', ')) + '</div>' +
+      '</div>' +
+    '</div>';
   }).join('');
 }
 
@@ -1488,18 +1549,19 @@ function buildPizzaMenuText() {
   text += '━'.repeat(30) + '\n\n';
 
   pizzas.forEach(r => {
+    const name      = getPizzaDisplayName(r);
     const toppings  = getPizzaToppings(r);
     const kcal      = r.nutrition?.kcal      ?? null;
     const prot      = r.nutrition?.proteines ?? null;
     const totalKcal = kcal && r.servings ? Math.round(kcal * r.servings) : kcal;
     const totalProt = prot && r.servings ? Math.round(prot * r.servings) : prot;
 
-    text += `🍕 ${r.title.toUpperCase()}\n`;
+    text += '🍕 ' + name.toUpperCase() + '\n';
     const stats = [];
-    if (totalKcal) stats.push(`${totalKcal} kcal`);
-    if (totalProt) stats.push(`${totalProt}g protéines`);
-    if (stats.length) text += `   ${stats.join(' · ')}\n`;
-    if (toppings.length) text += `   ${toppings.join(', ')}\n`;
+    if (totalKcal) stats.push(totalKcal + ' kcal');
+    if (totalProt) stats.push(totalProt + 'g protéines');
+    if (stats.length) text += '   ' + stats.join(' · ') + '\n';
+    if (toppings.length) text += '   ' + toppings.join(', ') + '\n';
     text += '\n';
   });
 
