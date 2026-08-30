@@ -339,7 +339,7 @@ async function callMistral(prompt) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
     body: JSON.stringify({
-      model: 'mistral-large-latest', temperature: 0.2,
+      model: 'mistral-small-latest', temperature: 0.2,
       messages: [
         { role: 'system', content: 'Tu es un expert en extraction de recettes culinaires. Tu réponds UNIQUEMENT en JSON valide, sans markdown, sans explication, sans backticks.' },
         { role: 'user',   content: prompt },
