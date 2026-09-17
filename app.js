@@ -298,7 +298,7 @@ function updateBadge() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  API KEY (Mistral)
+//  API KEY (Google Gemini)
 // ═══════════════════════════════════════════════════════════════
 function getApiKey() { return localStorage.getItem('recettai_apikey') || ''; }
 
@@ -306,7 +306,7 @@ function saveApiKey() {
   const val = document.getElementById('api-key-input').value.trim();
   if (!val) { toast('Veuillez saisir une clé API.', 'error'); return; }
   localStorage.setItem('recettai_apikey', val);
-  setApiStatus('✅ Clé Mistral enregistrée.', true);
+  setApiStatus('✅ Clé Gemini enregistrée.', true);
   toast('Clé API enregistrée !', 'success');
 }
 
@@ -330,24 +330,38 @@ function toggleKeyVis() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  MISTRAL API
+//  GOOGLE GEMINI API
 // ═══════════════════════════════════════════════════════════════
+const GEMINI_MODEL = 'gemini-2.0-flash-lite';
+
 async function callMistral(prompt) {
+  // Nom conservé pour compatibilité interne — appelle désormais Gemini
   const apiKey = getApiKey();
   if (!apiKey) throw new Error('NO_KEY');
-  const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-    body: JSON.stringify({
-      model: 'mistral-small-latest', temperature: 0.2,
-      messages: [
-        { role: 'system', content: 'Tu es un expert en extraction de recettes culinaires. Tu réponds UNIQUEMENT en JSON valide, sans markdown, sans explication, sans backticks.' },
-        { role: 'user',   content: prompt },
-      ],
-    }),
-  });
-  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.message || 'HTTP ' + res.status); }
-  return (await res.json()).choices[0].message.content;
+
+  const systemInstruction = 'Tu es un expert en extraction de recettes culinaires. Tu réponds UNIQUEMENT en JSON valide, sans markdown, sans explication, sans backticks.';
+
+  const res = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + apiKey,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemInstruction }] },
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    const msg = e?.error?.message || 'HTTP ' + res.status;
+    throw new Error(msg);
+  }
+
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
 function buildPrompt(type, input) {
@@ -400,7 +414,7 @@ function parseJSON(text) {
 //  ANALYZE
 // ═══════════════════════════════════════════════════════════════
 async function analyzeRecipe() {
-  if (!getApiKey()) { toast("⚙️ Configurez votre clé Mistral dans les Paramètres.", 'error'); showPage('settings'); return; }
+  if (!getApiKey()) { toast("⚙️ Configurez votre clé Gemini dans les Paramètres.", 'error'); showPage('settings'); return; }
   let input = currentTab === 'web' ? document.getElementById('web-url').value.trim()
             :                        document.getElementById('recipe-text').value.trim();
   if (!input) { toast('Veuillez saisir un contenu à analyser.', 'error'); return; }
@@ -421,9 +435,9 @@ async function analyzeRecipe() {
     document.getElementById('recipe-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
     toast('✅ Recette analysée !', 'success');
   } catch (err) {
-    console.error('[Mistral]', err);
+    console.error('[Gemini]', err);
     if (err.message === 'NO_KEY') { toast('⚙️ Clé API manquante.', 'error'); showPage('settings'); }
-    else if (/401|unauthorized/i.test(err.message)) { toast('❌ Clé Mistral refusée.', 'error'); showPage('settings'); }
+    else if (/401|unauthorized/i.test(err.message)) { toast('❌ Clé Gemini refusée. Vérifiez qu'elle est bien activée sur Google AI Studio.', 'error'); showPage('settings'); }
     else toast('❌ ' + err.message, 'error');
   } finally {
     hideLoading();
@@ -1035,9 +1049,9 @@ async function generateShoppingList() {
   const resultEl = document.getElementById('shopping-list-result');
   resultEl.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--muted)">✨ Optimisation par l\'IA en cours…</div>';
 
-  // Si pas de clé Mistral, fallback mode local
+  // Si pas de clé Gemini, fallback mode local
   if (!getApiKey()) {
-    toast('⚙️ Clé Mistral manquante — génération locale.', '');
+    toast('⚙️ Clé Gemini manquante — génération locale.', '');
     generateShoppingListLocal(selected);
     return;
   }
@@ -1156,7 +1170,7 @@ ${rawLines.join('\n')}`;
   }
 }
 
-// Fallback local (si pas de clé ou erreur Mistral)
+// Fallback local (si pas de clé Gemini ou erreur API)
 function generateShoppingListLocal(selected) {
   const agg = {};
   selected.forEach(r => flatIngredients(r).forEach(ing => {
