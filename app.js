@@ -365,41 +365,39 @@ async function callMistral(prompt) {
 }
 
 function buildPrompt(type, input) {
-  let ctx = type === 'web' ? "Lien page web de recette : " + input + "\nGénère la recette correspondante."
-          :                       "Texte de recette :\n\n" + input;
+  let ctx = type === 'web'
+    ? 'Lien page web de recette : ' + input + '\nGénère la recette correspondante.'
+    : 'Texte de recette :\n\n' + input;
   const src = type !== 'text' ? '"' + input + '"' : 'null';
-  return ctx + `
 
-Retourne UNIQUEMENT ce JSON (sans markdown ni backticks) :
-{
-  "title": "Titre",
-  "category": "Viande",
-  "servings": 4,
-  "source": ${src},
-  "ingredient_sections": [
-    {"label": "Pour la sauce", "ingredients": [{"qty":"2 càs","name":"sauce soja"}]},
-    {"label": "Pour la garniture", "ingredients": [{"qty":"200g","name":"pâtes"}]}
-  ],
-  "steps": ["Étape 1."],
-  "tags": ["asiatique","rapide","hiver"],
-  "nutrition": {"kcal": 450, "proteines": 25, "glucides": 50, "lipides": 15}
-}
-
-Règles :
-- category = Viande|Poisson|Dessert|Cocktail|Entrée uniquement
-- ingredient_sections : si la recette a plusieurs groupes d'ingrédients (ex: "Pour la marinade", "Pour la sauce", "Pour les boulettes"), crée une section par groupe avec un "label" descriptif. Si tous les ingrédients sont au même niveau, utilise une seule section avec "label": "Ingrédients".
-- Le champ "ingredients" de la recette (liste plate) NE doit PAS être présent — utiliser uniquement "ingredient_sections".
-- Quantités : toujours écrire "càs" (jamais "cuillère à soupe", "c. à soupe", "c.à.s", "cs") et "càc" (jamais "cuillère à café", "c. à café", "c.à.c", "cc").
-- tags : tableau de 2 à 5 tags pertinents parmi ces catégories :
-  * Cuisine : français, italien, asiatique, méditerranéen, américain, mexicain, indien, japonais, thaï, libanais
-  * Saison : printemps, été, automne, hiver
-  * Occasion : rapide, festif, comfort food, barbecue, apéro, brunch, batch cooking
-  * Régime : végétarien, sans gluten, léger
-- nutrition : estimation par personne (pour 1 part, pas pour toute la recette) à partir des ingrédients et quantités :
-  * kcal = calories totales estimées
-  * proteines, glucides, lipides = grammes estimés
-  Donne ta meilleure estimation raisonnable, même approximative — ne mets jamais null.
-  Ne jamais inventer d'informations absentes du contenu fourni pour le reste de la recette.`;
+  return ctx + '\n\n'
+    + 'Retourne UNIQUEMENT ce JSON valide (sans markdown, sans backtick) :\n'
+    + '{\n'
+    + '  "title": "Titre",\n'
+    + '  "category": "Viande",\n'
+    + '  "servings": 4,\n'
+    + '  "source": ' + src + ',\n'
+    + '  "ingredient_sections": [\n'
+    + '    {"label": "Pour la sauce", "ingredients": [{"qty":"2 càs","name":"sauce soja"}]},\n'
+    + '    {"label": "Pour la garniture", "ingredients": [{"qty":"200g","name":"pâtes"}]}\n'
+    + '  ],\n'
+    + '  "steps": ["Étape 1."],\n'
+    + '  "tags": ["asiatique","rapide","hiver"],\n'
+    + '  "nutrition": {"kcal": 450, "proteines": 25, "glucides": 50, "lipides": 15}\n'
+    + '}\n\n'
+    + 'Règles :\n'
+    + '- category = Viande|Poisson|Dessert|Cocktail|Entrée uniquement\n'
+    + '- ingredient_sections : si la recette a plusieurs groupes d\'ingrédients (ex: "Pour la marinade", "Pour la sauce", "Pour les boulettes"), crée une section par groupe avec un "label" descriptif. Si tous les ingrédients sont au même niveau, utilise une seule section avec "label": "Ingrédients".\n'
+    + '- Le champ "ingredients" (liste plate) NE doit PAS être présent — utiliser uniquement "ingredient_sections".\n'
+    + '- Quantités : toujours écrire "càs" (jamais "cuillère à soupe", "c. à soupe", "c.à.s", "cs") et "càc" (jamais "cuillère à café", "c. à café", "c.à.c", "cc").\n'
+    + '- tags : tableau de 2 à 5 tags parmi :\n'
+    + '  * Cuisine : français, italien, asiatique, méditerranéen, américain, mexicain, indien, japonais, thaï, libanais\n'
+    + '  * Saison : printemps, été, automne, hiver\n'
+    + '  * Occasion : rapide, festif, comfort food, barbecue, apéro, brunch, batch cooking\n'
+    + '  * Régime : végétarien, sans gluten, léger\n'
+    + '- nutrition : estimation par personne (pour 1 part) :\n'
+    + '  * kcal, proteines, glucides, lipides — jamais null, toujours une estimation.\n'
+    + '  Ne jamais inventer d\'informations absentes du contenu fourni pour le reste de la recette.';
 }
 
 function parseJSON(text) {
@@ -437,7 +435,7 @@ async function analyzeRecipe() {
   } catch (err) {
     console.error('[Gemini]', err);
     if (err.message === 'NO_KEY') { toast('⚙️ Clé API manquante.', 'error'); showPage('settings'); }
-    else if (/401|unauthorized/i.test(err.message)) { toast('❌ Clé Gemini refusée. Vérifiez qu'elle est bien activée sur Google AI Studio.', 'error'); showPage('settings'); }
+    else if (/401|unauthorized/i.test(err.message)) { toast('❌ Clé Gemini refusée. Vérifiez qu\'elle est bien activée sur Google AI Studio.', 'error'); showPage('settings'); }
     else toast('❌ ' + err.message, 'error');
   } finally {
     hideLoading();
@@ -1056,96 +1054,73 @@ async function generateShoppingList() {
     return;
   }
 
-  const shoppingPrompt = `Tu es un expert en organisation de listes de courses.
-
-Ta mission est de corriger, dédupliquer et réorganiser la liste de courses que je vais te fournir.
-
-Respecte impérativement les règles suivantes :
-
-1. Classement des ingrédients
-
-Chaque ingrédient doit être placé dans la bonne catégorie, même si la recette l'a classé au mauvais endroit.
-
-Utilise uniquement ces catégories :
-
-- 🥩 Viandes & Charcuterie
-- 🐟 Poissons & Fruits de mer
-- 🥛 Produits laitiers & Œufs
-- 🥦 Fruits & Légumes
-- 🌾 Épicerie sèche
-- 🧂 Épices, Herbes & Condiments
-- 🥫 Conserves
-- 🧊 Surgelés
-- 🥤 Boissons
-- 🍞 Boulangerie (si nécessaire)
-- 📦 Autres (uniquement si aucune autre catégorie ne convient)
-
-Exemples :
-- ail → Fruits & Légumes
-- échalote → Fruits & Légumes
-- oignon → Fruits & Légumes
-- gingembre frais → Fruits & Légumes
-- gingembre en poudre → Épices, Herbes & Condiments
-- persil, coriandre, basilic, ciboulette, aneth → Épices, Herbes & Condiments
-- huile d'olive → Épices, Herbes & Condiments
-- sauce soja → Épices, Herbes & Condiments
-- moutarde → Épices, Herbes & Condiments
-- miel → Épices, Herbes & Condiments
-- chapelure → Épicerie sèche
-- farine → Épicerie sèche
-
-Ne conserve jamais un ingrédient dans une mauvaise catégorie.
-
-2. Fusion des doublons
-
-Fusionne automatiquement tous les ingrédients identiques, même lorsqu'ils sont écrits différemment.
-Additionne les quantités lorsqu'elles utilisent la même unité. Si plusieurs unités sont présentes (g, ml, càs, càc...), les conserver lorsqu'elles ne sont pas convertibles facilement.
-
-3. Ignorer les précisions de recette
-
-Supprime les mentions comme : pour la sauce, pour les boulettes, pour la marinade, pour la décoration, pour servir, facultatif, recommandé, au choix, pour l'accompagnement.
-
-4. Normalisation
-
-Uniformise les noms :
-- gousse d'ail → ail
-- ail haché → ail
-- persil frais → persil
-- coriandre fraîche → coriandre
-- huile d'olive extra vierge → huile d'olive
-- sauce soja salée → sauce soja
-- sauce soja sucrée → sauce soja
-
-Conserve uniquement le nom le plus simple.
-
-5. Addition des quantités
-
-Additionne toutes les quantités identiques.
-Exemples : 2 œufs + 4 œufs = 6 œufs, 100g beurre + 30g beurre = 130g beurre
-Si les unités sont incompatibles (g et cuillères), ne fais pas de conversion approximative et conserve les deux valeurs.
-
-6. Tri
-
-Dans chaque catégorie : classer les ingrédients par ordre alphabétique ; ne jamais afficher deux fois le même ingrédient.
-
-7. Format de sortie STRICT
-
-Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks, sans explication.
-Format :
-[
-  {
-    "cat": "🥩 Viandes & Charcuterie",
-    "items": [
-      {"qty": "500g", "name": "boeuf haché"},
-      {"qty": "", "name": "lardons"}
-    ]
-  },
-  ...
-]
-N'inclure que les catégories qui ont au moins un ingrédient.
-
-Voici la liste d'ingrédients à traiter :
-${rawLines.join('\n')}`;
+  const shoppingPrompt = 'Tu es un expert en organisation de listes de courses.\n\n'
+    + 'Ta mission est de corriger, dédupliquer et réorganiser la liste de courses que je vais te fournir.\n\n'
+    + 'Respecte impérativement les règles suivantes :\n\n'
+    + '1. Classement des ingrédients\n\n'
+    + 'Chaque ingrédient doit être placé dans la bonne catégorie, même si la recette l\'a classé au mauvais endroit.\n\n'
+    + 'Utilise uniquement ces catégories :\n\n'
+    + '- \uD83E\uDD69 Viandes & Charcuterie\n'
+    + '- \uD83D\uDC1F Poissons & Fruits de mer\n'
+    + '- \uD83E\uDD5B Produits laitiers & Oeufs\n'
+    + '- \uD83E\uDD66 Fruits & Légumes\n'
+    + '- \uD83C\uDF3E Épicerie sèche\n'
+    + '- \uD83E\uDDC2 Épices, Herbes & Condiments\n'
+    + '- \uD83E\uDD6B Conserves\n'
+    + '- \uD83E\uDDCA Surgelés\n'
+    + '- \uD83E\uDD64 Boissons\n'
+    + '- \uD83C\uDF5E Boulangerie (si nécessaire)\n'
+    + '- \uD83D\uDCE6 Autres (uniquement si aucune autre catégorie ne convient)\n\n'
+    + 'Exemples :\n'
+    + '- ail → Fruits & Légumes\n'
+    + '- échalote → Fruits & Légumes\n'
+    + '- oignon → Fruits & Légumes\n'
+    + '- gingembre frais → Fruits & Légumes\n'
+    + '- gingembre en poudre → Épices, Herbes & Condiments\n'
+    + '- persil, coriandre, basilic, ciboulette, aneth → Épices, Herbes & Condiments\n'
+    + '- huile d\'olive → Épices, Herbes & Condiments\n'
+    + '- sauce soja → Épices, Herbes & Condiments\n'
+    + '- moutarde → Épices, Herbes & Condiments\n'
+    + '- miel → Épices, Herbes & Condiments\n'
+    + '- chapelure → Épicerie sèche\n'
+    + '- farine → Épicerie sèche\n\n'
+    + 'Ne conserve jamais un ingrédient dans une mauvaise catégorie.\n\n'
+    + '2. Fusion des doublons\n\n'
+    + 'Fusionne automatiquement tous les ingrédients identiques, même lorsqu\'ils sont écrits différemment.\n'
+    + 'Additionne les quantités lorsqu\'elles utilisent la même unité. Si plusieurs unités sont présentes (g, ml, càs, càc...), les conserver lorsqu\'elles ne sont pas convertibles facilement.\n\n'
+    + '3. Ignorer les précisions de recette\n\n'
+    + 'Supprime les mentions comme : pour la sauce, pour les boulettes, pour la marinade, pour la décoration, pour servir, facultatif, recommandé, au choix, pour l\'accompagnement.\n\n'
+    + '4. Normalisation\n\n'
+    + 'Uniformise les noms :\n'
+    + '- gousse d\'ail → ail\n'
+    + '- ail haché → ail\n'
+    + '- persil frais → persil\n'
+    + '- coriandre fraîche → coriandre\n'
+    + '- huile d\'olive extra vierge → huile d\'olive\n'
+    + '- sauce soja salée → sauce soja\n'
+    + '- sauce soja sucrée → sauce soja\n\n'
+    + 'Conserve uniquement le nom le plus simple.\n\n'
+    + '5. Addition des quantités\n\n'
+    + 'Additionne toutes les quantités identiques.\n'
+    + 'Exemples : 2 oeufs + 4 oeufs = 6 oeufs, 100g beurre + 30g beurre = 130g beurre\n'
+    + 'Si les unités sont incompatibles (g et cuillères), ne fais pas de conversion approximative et conserve les deux valeurs.\n\n'
+    + '6. Tri\n\n'
+    + 'Dans chaque catégorie : classer les ingrédients par ordre alphabétique ; ne jamais afficher deux fois le même ingrédient.\n\n'
+    + '7. Format de sortie STRICT\n\n'
+    + 'Reponds UNIQUEMENT en JSON valide, sans markdown, sans explication.\n'
+    + 'Format :\n'
+    + '[\n'
+    + '  {\n'
+    + '    "cat": "Viandes & Charcuterie",\n'
+    + '    "items": [\n'
+    + '      {"qty": "500g", "name": "boeuf hache"},\n'
+    + '      {"qty": "", "name": "lardons"}\n'
+    + '    ]\n'
+    + '  }\n'
+    + ']\n'
+    + 'N\'inclure que les catégories qui ont au moins un ingrédient.\n\n'
+    + 'Voici la liste d\'ingrédients à traiter :\n'
+    + rawLines.join('\n');
 
   try {
     const raw = await callMistral(shoppingPrompt);
