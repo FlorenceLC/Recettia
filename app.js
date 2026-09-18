@@ -332,7 +332,7 @@ function toggleKeyVis() {
 // ═══════════════════════════════════════════════════════════════
 //  GOOGLE GEMINI API
 // ═══════════════════════════════════════════════════════════════
-const GEMINI_MODEL = 'gemini-2.0-flash-lite';
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 async function callMistral(prompt) {
   // Nom conservé pour compatibilité interne — appelle désormais Gemini
